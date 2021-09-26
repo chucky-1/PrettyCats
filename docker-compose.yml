@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  cats:
+    build: ./
+#    command: ./catscrud
+    ports:
+      - "80:8000"
+    depends_on:
+      - db
+
+  db:
+    restart: always
+    image: postgres:latest
+    volumes:
+      - ./.database/postgres/data:/var/lib/postgresql/data
+    ports:
+      - "5432:5436"
