@@ -1,0 +1,13 @@
+port: ":8000"
+
+db:
+  pos: "postgres"
+  username: "postgres"
+  host: "db:5436"
+  dbase: "postgres"
+
+# Хост для докера
+# //host = "db:5436"
+
+# Хост для локального запуска
+#host: "localhost:5432"

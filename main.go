@@ -1,23 +1,15 @@
 package main
 
 import (
+	"CatsCrud/repository"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v4"
 	"github.com/labstack/echo/v4"
 	"log"
 	"net/http"
-	"os"
-)
-
-const (
-	pos = "postgres"
-	username = "postgres"
-	password = "220095Qwe"
-	//host = "localhost:5432"
-	host = "db:5436"
-	dbase = "postgres"
+	"strconv"
 )
 
 func main() {
@@ -33,21 +25,14 @@ func main() {
 	e.PUT("/cats/:id", updateUser)
 	e.DELETE("/cats/:id", deleteCat)
 
+	// Временное решение проблемы. Вызываю RequestDB, что бы получить port из config
+	//conn := repository.RequestDB()
+	//conn.Close(context.Background())
 	e.Logger.Fatal(e.Start(":8000"))
 }
 
-func requestDB() *pgx.Conn {
-	url := fmt.Sprintf("%s://%s:%s@%s/%s", pos, username, password, host, dbase)
-	conn, err := pgx.Connect(context.Background(), url)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		os.Exit(1)
-	}
-	return conn
-}
-
 func getAllCats(c echo.Context) error {
-	conn := requestDB()
+	conn := repository.RequestDB()
 	defer conn.Close(context.Background())
 
 	rows, err := conn.Query(context.Background(), "select ID, name from cats")
@@ -69,8 +54,8 @@ func getAllCats(c echo.Context) error {
 		id := values[0].(int32)
 		name := values[1].(string)
 
-		ct := &cat {
-			ID: id,
+		ct := &cat{
+			ID:   id,
 			Name: name,
 		}
 		allcats[ct.ID] = ct
@@ -79,93 +64,96 @@ func getAllCats(c echo.Context) error {
 }
 
 func createCats(c echo.Context) error {
-	conn := requestDB()
+	conn := repository.RequestDB()
 	defer conn.Close(context.Background())
 
-	//Не смог достучаться до c.Param
-	//test := c.QueryParam("name")
-	//fmt.Println(test)
-
-	// Получить последний id
-	rows, err := conn.Query(context.Background(), "select ID, name from cats")
+	// Получаем параметры JSON в json_map
+	json_map := make(map[string]interface{})
+	err := json.NewDecoder(c.Request().Body).Decode(&json_map)
 	if err != nil {
-		log.Fatal(err)
-	}
-	var id int32
-	for rows.Next() {
-		values, err := rows.Values()
-		if err != nil {
-			log.Fatal(err)
-		}
-		id = values[0].(int32)
+		return err
 	}
 
-	id ++
-	name := fmt.Sprintf("cat%d", id)
-	commandTag, err := conn.Exec(context.Background(),
-		fmt.Sprintf("INSERT INTO cats VALUES (%d, '%s')", id, name))
+	// Достаём id, name. Id преобразуем в int
+	var id interface{}
+	id = json_map["id"]
+	idInt, err := strconv.Atoi(id.(string))
+	if err != nil {
+		return err
+	}
+	name := json_map["name"]
+	fmt.Println(name)
+
+	// Добавляем в базу данных
+	commandTag, err := conn.Exec(context.Background(), "INSERT INTO cats VALUES ($1, $2)", idInt, name)
 	if err != nil {
 		return err
 	}
 	if commandTag.RowsAffected() != 1 {
-		return errors.New("No row found to delete")
+		return errors.New("Failed to create cat")
 	}
-	return nil
+
+	return c.JSON(http.StatusCreated, json_map)
 }
 
 func getCat(c echo.Context) error {
-	conn := requestDB()
+	conn := repository.RequestDB()
 	defer conn.Close(context.Background())
 
 	id := c.Param("id")
+	var name string
 
-	rows, err := conn.Query(context.Background(), fmt.Sprintf("select ID, name from cats where id=%s", id))
+	err := conn.QueryRow(context.Background(), "select name from cats where id=$1", id).Scan(&name)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	for rows.Next() {
-		values, err := rows.Values()
-		if err != nil {
-			log.Fatal(err)
-		}
-		id := values[0].(int32)
-		name := values[1].(string)
-		return c.String(http.StatusOK, fmt.Sprintf("id: %d, Имя: %s", id, name))
-	}
-	return nil
+	return c.String(http.StatusOK, fmt.Sprintf("cat's name is %s, id: %s", name, id))
 }
 
 func updateUser(c echo.Context) error {
-	conn := requestDB()
+	conn := repository.RequestDB()
 	defer conn.Close(context.Background())
 
 	id := c.Param("id")
-	name := c.QueryParam("name")
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return err
+	}
 
-	commandTag, err := conn.Exec(context.Background(),
-		fmt.Sprintf("UPDATE cats SET name = %s WHERE id = %s", name, id))
+	// Получаем параметры JSON в json_map
+	json_map := make(map[string]interface{})
+	err2 := json.NewDecoder(c.Request().Body).Decode(&json_map)
+	if err2 != nil {
+		return err2
+	}
+
+	// Достаём name
+	name := json_map["name"]
+
+	// Вносим изменения в базу данных
+	commandTag, err := conn.Exec(context.Background(), "UPDATE cats SET name = $1 WHERE id = $2", name, idInt)
 	if err != nil {
 		return err
 	}
 	if commandTag.RowsAffected() != 1 {
-		return errors.New("No row found to delete")
+		return errors.New("Row isn't update")
 	}
-	return nil
+	return c.JSON(http.StatusOK, json_map)
 }
 
 func deleteCat(c echo.Context) error {
-	conn := requestDB()
+	conn := repository.RequestDB()
 	defer conn.Close(context.Background())
 
 	id := c.Param("id")
 
-	commandTag, err := conn.Exec(context.Background(), fmt.Sprintf("delete from cats where id=%s", id))
+	commandTag, err := conn.Exec(context.Background(), "delete from cats where id=$1", id)
 	if err != nil {
 		return err
 	}
 	if commandTag.RowsAffected() != 1 {
 		return errors.New("No row found to delete")
 	}
-	return nil
+	return c.String(http.StatusOK, fmt.Sprintf("Cats %s delete", id))
 }
