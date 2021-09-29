@@ -14,8 +14,6 @@ services:
   db:
     restart: always
     image: postgres:latest
-#    volumes:
-#      - ./.database/postgres/data:/var/lib/postgresql/data
     ports:
       - "5432:5436"
     environment:
