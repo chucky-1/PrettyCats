@@ -2,34 +2,21 @@ package service
 
 import (
 	"CatsCrud/models"
+	"CatsCrud/repository"
 	"context"
 	"encoding/json"
 	"errors"
 	"github.com/jackc/pgx/v4"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
 	"strconv"
 )
 
-func GetAllCatsServ(rows pgx.Rows) map[int32]*models.Сat {
-	var allcats = map[int32]*models.Сat{}
+type CatService struct {
+	repository *repository.Repository
+}
 
-	for rows.Next() {
-		values, err := rows.Values()
-		if err != nil {
-			log.Fatal(err)
-		}
-		id := values[0].(int32)
-		name := values[1].(string)
-
-		ct := &models.Сat{
-			ID:   id,
-			Name: name,
-		}
-		allcats[ct.ID] = ct
-	}
-
-	return allcats
+func (s *CatService) GetAllCatsServ() ([]*models.Cats, error) {
+	return s.repository.GetAllCats()
 }
 
 func CreateCatsServ(c echo.Context, conn *pgx.Conn) (map[string]interface{}, error) {

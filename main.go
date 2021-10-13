@@ -2,7 +2,6 @@ package main
 
 import (
 	"CatsCrud/handler"
-
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -10,11 +9,15 @@ import (
 func main() {
 	e := echo.New()
 
+	//catsMemory := models.NewCatsMemory()
+	//hendler := handler.
+
 	//Routes
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, Cats!")
 	})
-	e.GET("/cats", handler.GetAllCats)
+	hndlr:= handler.CatHandler{}
+	e.GET("/cats", hndlr.GetAllCats)
 	e.POST("/cats", handler.CreateCats)
 	e.GET("/cats/:id", handler.GetCat)
 	e.PUT("/cats/:id", handler.UpdateUser)

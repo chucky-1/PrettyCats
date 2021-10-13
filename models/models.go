@@ -1,7 +1,7 @@
 package models
 
 
-type Сat struct {
+type Cats struct {
 	ID   int32  `json:"id"`
 	Name string `json:"name"`
 }

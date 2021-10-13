@@ -34,6 +34,13 @@ func RequestDB() *pgx.Conn {
 	return conn
 }
 
+func DbCall() *pgx.Conn {
+	conn := RequestDB()
+	defer conn.Close(context.Background())
+
+	return conn
+}
+
 func initConfig() error {
 	viper.AddConfigPath("configs")
 	viper.SetConfigName("config")

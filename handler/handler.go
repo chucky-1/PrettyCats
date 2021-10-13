@@ -6,21 +6,18 @@ import (
 	"context"
 	"fmt"
 	"github.com/labstack/echo/v4"
-	"log"
 	"net/http"
 )
 
-func GetAllCats(c echo.Context) error {
-	conn := repository.RequestDB()
-	defer conn.Close(context.Background())
+type CatHandler struct {
+	src *service.CatService
+}
 
-	rows, err := conn.Query(context.Background(), "select ID, name from cats")
+func(h *CatHandler) GetAllCats(c echo.Context) error {
+	allcats, err :=  h.src.GetAllCatsServ()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-
-	allcats := service.GetAllCatsServ(rows)
-
 	return c.JSON(http.StatusOK, allcats)
 }
 

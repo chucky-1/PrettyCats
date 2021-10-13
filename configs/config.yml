@@ -3,7 +3,7 @@ port: ":8000"
 db:
   pos: "postgres"
   username: "postgres"
-  host: "db:5436"
+  host: "localhost:5432"
   dbase: "postgres"
 
 # Хост для докера
