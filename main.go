@@ -9,19 +9,16 @@ import (
 func main() {
 	e := echo.New()
 
-	//catsMemory := models.NewCatsMemory()
-	//hendler := handler.
-
 	//Routes
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, Cats!")
 	})
-	hndlr:= handler.CatHandler{}
+	hndlr := handler.CatHandler{}
 	e.GET("/cats", hndlr.GetAllCats)
-	e.POST("/cats", handler.CreateCats)
-	e.GET("/cats/:id", handler.GetCat)
-	e.PUT("/cats/:id", handler.UpdateUser)
-	e.DELETE("/cats/:id", handler.DeleteCat)
+	e.POST("/cats", hndlr.CreateCats)
+	e.GET("/cats/:id", hndlr.GetCat)
+	e.PUT("/cats/:id", hndlr.UpdateCat)
+	e.DELETE("/cats/:id", hndlr.DeleteCat)
 
 	// Временное решение проблемы. Вызываю RequestDB, что бы получить port из config
 	//conn := repository.RequestDB()
