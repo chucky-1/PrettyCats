@@ -4,7 +4,6 @@ import (
 	"CatsCrud/handler"
 	"CatsCrud/repository"
 	"CatsCrud/service"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -16,7 +15,8 @@ func main() {
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, Cats!")
 	})
-	rps := repository.NewRepository(pgxpool.Pool{})
+	conn := repository.RequestDB()
+	rps := repository.NewRepository(conn)
 	srv := service.NewCatService(rps)
 	hndlr := handler.NewCatHandler(srv)
 	e.GET("/cats", hndlr.GetAllCats)
