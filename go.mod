@@ -13,6 +13,7 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/jackc/pgtype v1.8.1 // indirect
 	github.com/jackc/pgx/v4 v4.13.0 // indirect
+	github.com/jackc/puddle v1.1.3 // indirect
 	github.com/joho/godotenv v1.4.0 // indirect
 	github.com/labstack/echo/v4 v4.6.1 // indirect
 	github.com/labstack/gommon v0.3.0 // indirect
