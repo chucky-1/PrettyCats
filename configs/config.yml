@@ -1,5 +1,8 @@
 port: ":8000"
 
+# 1 - postgres, 2 - mongo
+usedb: 2
+
 db:
   pos: "postgres"
   username: "postgres"
@@ -11,3 +14,12 @@ db:
 
 # Хост для локального запуска
 #host: "localhost:5432"
+
+mongodb:
+#  username: "mongodb"
+#  password: "mongodb"
+  host: "localhost"
+  port: "27017"
+  dbase: "mongo"
+  collection: "mongo"
+

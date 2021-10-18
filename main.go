@@ -4,6 +4,7 @@ import (
 	"CatsCrud/handler"
 	"CatsCrud/repository"
 	"CatsCrud/service"
+	"context"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -11,13 +12,19 @@ import (
 func main() {
 	e := echo.New()
 
-	//Routes
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, Cats!")
 	})
+
+	// Соединение с postgres
 	conn := repository.RequestDB()
 	defer conn.Close()
-	rps := repository.NewRepository(conn)
+
+	// Соединение с mongo
+	client := repository.RequestMongo()
+	defer client.Disconnect(context.TODO())
+
+	rps := repository.NewRepository(conn, client)
 	srv := service.NewCatService(rps)
 	hndlr := handler.NewCatHandler(srv)
 	e.GET("/cats", hndlr.GetAllCats)
@@ -26,8 +33,5 @@ func main() {
 	e.PUT("/cats/:id", hndlr.UpdateCat)
 	e.DELETE("/cats/:id", hndlr.DeleteCat)
 
-	// Временное решение проблемы. Вызываю RequestDB, что бы получить port из config
-	//conn := repository.RequestDB()
-	//conn.Close(context.Background())
 	e.Logger.Fatal(e.Start(":8000"))
 }

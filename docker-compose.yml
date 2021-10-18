@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  cats:
+  app:
     build: ./
     command: ./wait-for-postgres.sh db ./app
     ports:
