@@ -6,10 +6,10 @@ import (
 )
 
 type CatService struct {
-	repository *repository.Repository
+	repository repository.Repository
 }
 
-func NewCatService(rps *repository.Repository) *CatService {
+func NewCatService(rps repository.Repository) *CatService {
 	return &CatService{repository: rps}
 }
 

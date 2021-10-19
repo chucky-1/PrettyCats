@@ -9,6 +9,9 @@ import (
 	"net/http"
 )
 
+// 1 - postgres, 2 - mongo
+const flag = 2
+
 func main() {
 	e := echo.New()
 
@@ -16,15 +19,22 @@ func main() {
 		return c.String(http.StatusOK, "Hello, Cats!")
 	})
 
-	// Соединение с postgres
-	conn := repository.RequestDB()
-	defer conn.Close()
+	var rps repository.Repository
 
-	// Соединение с mongo
-	client := repository.RequestMongo()
-	defer client.Disconnect(context.TODO())
+	if flag == 1 {
+		// Соединение с postgres
+		conn := repository.RequestDB()
+		defer conn.Close()
 
-	rps := repository.NewRepository(conn, client)
+		rps = repository.NewPostgresRepository(conn)
+	} else if flag == 2 {
+		// Соединение с mongo
+		client := repository.RequestMongo()
+		defer client.Disconnect(context.TODO())
+
+		rps = repository.NewMongoRepository(client)
+	}
+
 	srv := service.NewCatService(rps)
 	hndlr := handler.NewCatHandler(srv)
 	e.GET("/cats", hndlr.GetAllCats)

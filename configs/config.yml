@@ -1,8 +1,5 @@
 port: ":8000"
 
-# 1 - postgres, 2 - mongo
-usedb: 2
-
 db:
   pos: "postgres"
   username: "postgres"
