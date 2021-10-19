@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"strconv"
 )
@@ -67,15 +68,10 @@ func (c *PostgresRepository) GetAllCats() ([]*models.Cats, error) {
 
 func (c *PostgresRepository) CreateCats(jsonMap map[string]interface{}) (*models.Cats, error) {
 
-	// Инициализация структуры models.Cats
-	cat := models.Cats{
-		ID:   0,
-		Name: "",
-	}
+	var cat models.Cats
 
 	// Достаём id, name. Id преобразуем в int
-	var id interface{}
-	id = jsonMap["id"]
+	var id interface{} = jsonMap["id"]
 	idInt, err := strconv.Atoi(id.(string))
 	if err != nil {
 		return &cat, err
@@ -199,8 +195,7 @@ func (c *MongoRepository) CreateCats(jsonMap map[string]interface{}) (*models.Ca
 	}
 
 	// Достаём id, name. Id преобразуем в int
-	var id interface{}
-	id = jsonMap["id"]
+	var id interface{} = jsonMap["id"]
 	idInt, err := strconv.Atoi(id.(string))
 	if err != nil {
 		return &cat, err
@@ -214,7 +209,7 @@ func (c *MongoRepository) CreateCats(jsonMap map[string]interface{}) (*models.Ca
 	collection := c.client.Database(viper.GetString("mongodb.dbase")).Collection(viper.GetString("mongodb.collection"))
 
 	docs := []interface{}{
-		bson.D{{"id" , cat.ID},{"name" , cat.Name}},
+		bson.D{primitive.E{Key: "id" , Value: cat.ID},{Key: "name" , Value: cat.Name}},
 	}
 
 	_, insertErr := collection.InsertMany(context.TODO(), docs)
@@ -234,7 +229,7 @@ func (c *MongoRepository) GetCat(id string) (*models.Cats, error) {
 
 	collection := c.client.Database(viper.GetString("mongodb.dbase")).Collection(viper.GetString("mongodb.collection"))
 
-	err = collection.FindOne(context.TODO(), bson.D{{"id", idInt}}).Decode(&cat)
+	err = collection.FindOne(context.TODO(), bson.D{primitive.E{Key: "id", Value: idInt}}).Decode(&cat)
 	if err != nil {
 		return &cat, err
 	}
@@ -259,8 +254,8 @@ func (c *MongoRepository) UpdateCat(id string, jsonMap map[string]interface{}) (
 
 	// Вносим изменения в базу данных
 	collection := c.client.Database(viper.GetString("mongodb.dbase")).Collection(viper.GetString("mongodb.collection"))
-	filter := bson.D{{"id", idInt}}
-	update := bson.D{{"$set", bson.D{{"name", name}}}}
+	filter := bson.D{primitive.E{Key: "id", Value: idInt}}
+	update := bson.D{primitive.E{Key: "$set", Value: bson.D{primitive.E{Key: "name", Value: name}}}}
 	_, err = collection.UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		log.Fatal(err)
@@ -282,7 +277,7 @@ func (c *MongoRepository) DeleteCat(id string) (*models.Cats, error) {
 
 	//	Удаляем из базы
 	collection := c.client.Database(viper.GetString("mongodb.dbase")).Collection(viper.GetString("mongodb.collection"))
-	_, err =collection.DeleteOne(context.TODO(), bson.D{{"id", idInt}})
+	_, err =collection.DeleteOne(context.TODO(), bson.D{primitive.E{Key: "id", Value: idInt}})
 	if err != nil {
 		log.Fatal(err)
 	}

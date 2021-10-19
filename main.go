@@ -4,7 +4,6 @@ import (
 	"CatsCrud/handler"
 	"CatsCrud/repository"
 	"CatsCrud/service"
-	"context"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -29,8 +28,8 @@ func main() {
 		rps = repository.NewPostgresRepository(conn)
 	} else if flag == 2 {
 		// Соединение с mongo
-		client := repository.RequestMongo()
-		defer client.Disconnect(context.TODO())
+		client, cancel := repository.RequestMongo()
+		defer cancel()
 
 		rps = repository.NewMongoRepository(client)
 	}

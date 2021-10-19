@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func RequestMongo() *mongo.Client {
+func RequestMongo() (*mongo.Client, context.CancelFunc) {
 	if err := initConfig(); err != nil {
 		log.Fatal("error config files")
 	}
@@ -23,10 +23,10 @@ func RequestMongo() *mongo.Client {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	err = client.Connect(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return client
+	return client, cancel
 }
