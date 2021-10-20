@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"CatsCrud/models"
+	"CatsCrud/internal/models"
 	"context"
 	"errors"
 	"fmt"

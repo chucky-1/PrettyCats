@@ -1,8 +1,8 @@
 package service
 
 import (
-	"CatsCrud/models"
-	"CatsCrud/repository"
+	"CatsCrud/internal/models"
+	"CatsCrud/internal/repository"
 )
 
 type CatService struct {

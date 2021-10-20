@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"CatsCrud/service"
+	"CatsCrud/internal/service"
 	"encoding/json"
 	"github.com/labstack/echo/v4"
 	"net/http"

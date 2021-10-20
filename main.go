@@ -1,9 +1,9 @@
 package main
 
 import (
-	"CatsCrud/handler"
-	"CatsCrud/repository"
-	"CatsCrud/service"
+	"CatsCrud/internal/handler"
+	repository2 "CatsCrud/internal/repository"
+	"CatsCrud/internal/service"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -18,20 +18,20 @@ func main() {
 		return c.String(http.StatusOK, "Hello, Cats!")
 	})
 
-	var rps repository.Repository
+	var rps repository2.Repository
 
 	if flag == 1 {
 		// Соединение с postgres
-		conn := repository.RequestDB()
+		conn := repository2.RequestDB()
 		defer conn.Close()
 
-		rps = repository.NewPostgresRepository(conn)
+		rps = repository2.NewPostgresRepository(conn)
 	} else if flag == 2 {
 		// Соединение с mongo
-		client, cancel := repository.RequestMongo()
+		client, cancel := repository2.RequestMongo()
 		defer cancel()
 
-		rps = repository.NewMongoRepository(client)
+		rps = repository2.NewMongoRepository(client)
 	}
 
 	srv := service.NewCatService(rps)
