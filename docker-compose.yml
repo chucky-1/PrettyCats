@@ -2,19 +2,42 @@ version: '3.8'
 
 services:
   app:
-    build: ./
-    command: ./wait-for-postgres.sh db ./app
-    ports:
-      - "80:8000"
     depends_on:
       - db
+    build: ./
+    ports:
+      - "8000:8000"
+    networks:
+      - mynet
     environment:
-      - DB_PASSWORD=220095Qwe
+      - DB_PASSWORD=testpassword
 
   db:
-    restart: always
+    container_name: postgres
     image: postgres:latest
+    restart: always
     ports:
-      - "5432:5436"
+      - "5432:5432"
+    networks:
+      - mynet
     environment:
-      - POSTGRES_PASSWORD=220095Qwe
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=testpassword
+
+  flyway:
+    image: flyway/flyway
+    command: -url=jdbc:postgresql://postgres:5432/postgres -user=user -password=testpassword migrate
+    volumes:
+      - roach:/var/lib/postgresql/data
+      - ./flyway/sql:/flyway/sql
+    depends_on:
+      - db
+    networks:
+      - mynet
+
+volumes:
+  roach:
+
+networks:
+  mynet:
+    driver: bridge

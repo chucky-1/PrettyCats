@@ -9,7 +9,7 @@ import (
 )
 
 // 1 - postgres, 2 - mongo
-const flag = 2
+const flag = 1
 
 func main() {
 	e := echo.New()

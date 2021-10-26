@@ -1,17 +1,15 @@
 FROM golang:latest
 
+#ADD docker-entrypoint-initdb.d/init.sh /usr/local/bin/docker-entrypoint.sh/docker-entrypoint-initdb.d/
+#COPY docker-entrypoint-initdb.d /docker-entrypoint-initdb.d
+
 RUN mkdir -p usr/src/app/
 WORKDIR /usr/src/app/
 
 COPY . /usr/src/app/
 
-# install psql
-RUN apt-get update
-RUN apt-get -y install postgresql-client
-
-RUN chmod +x wait-for-postgres.sh
-
 RUN go mod download
-RUN go build -o app main.go
 
-CMD ["./app"]
+RUN go build -o /docker-cats
+
+CMD ["/docker-cats"]

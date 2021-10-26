@@ -19,11 +19,12 @@ func RequestDB() *pgxpool.Pool {
 		log.Fatal("error loading env variables")
 	}
 
-	url := fmt.Sprintf("%s://%s:%s@%s/%s",
+	url := fmt.Sprintf("%s://%s:%s@%s:%s/%s",
 		viper.GetString("db.pos"),
 		viper.GetString("db.username"),
 		os.Getenv("DB_PASSWORD"),
 		viper.GetString("db.host"),
+		viper.GetString("db.port"),
 		viper.GetString("db.dbase"))
 
 	conn, err := pgxpool.Connect(context.Background(), url)
