@@ -40,7 +40,7 @@ func NewMongoRepository(client *mongo.Client) *MongoRepository {
 
 func (c *PostgresRepository) GetAllCats() ([]*models.Cats, error) {
 
-	var allcats = []*models.Cats{}
+	var allcats []*models.Cats
 
 	rows, err := c.conn.Query(context.Background(), "select ID, name from cats")
 	if err != nil {
@@ -156,8 +156,15 @@ func (c *PostgresRepository) DeleteCat(id string) (*models.Cats, error) {
 		return &cat, err
 	}
 
-	// Обновляес models.Cats
+	// Обновляем models.Cats
 	cat.ID = int32(idInt)
+	// Достаём name
+	var name string
+	err = c.conn.QueryRow(context.Background(), "select name from cats where id=$1", id).Scan(&name)
+	if err != nil {
+		return &cat, err
+	}
+	cat.Name = name
 
 	// Удаление из базы
 	commandTag, err := c.conn.Exec(context.Background(), "delete from cats where id=$1", id)

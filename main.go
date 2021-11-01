@@ -19,7 +19,6 @@ func main() {
 	})
 
 	var rps repository2.Repository
-
 	if flag == 1 {
 		// Соединение с postgres
 		conn := repository2.RequestDB()
@@ -34,7 +33,8 @@ func main() {
 		rps = repository2.NewMongoRepository(client)
 	}
 
-	srv := service.NewCatService(rps)
+	var srv service.Service
+	srv = service.NewCatService(rps)
 	hndlr := handler.NewCatHandler(srv)
 	e.GET("/cats", hndlr.GetAllCats)
 	e.POST("/cats", hndlr.CreateCats)

@@ -9,6 +9,14 @@ type CatService struct {
 	repository repository.Repository
 }
 
+type Service interface {
+	GetAllCatsServ() ([]*models.Cats, error)
+	CreateCatsServ(jsonMap map[string]interface{}) (*models.Cats, error)
+	GetCatServ(id string) (*models.Cats, error)
+	UpdateCatServ(id string, jsonMap map[string]interface{}) (*models.Cats, error)
+	DeleteCatServ(id string) (*models.Cats, error)
+}
+
 func NewCatService(rps repository.Repository) *CatService {
 	return &CatService{repository: rps}
 }

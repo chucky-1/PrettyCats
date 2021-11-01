@@ -10,10 +10,8 @@ db:
 
 
 mongodb:
-#  username: "mongodb"
-#  password: "mongodb"
-  host: "localhost"
+  username: "root"
   port: "27017"
-  dbase: "mongo"
-  collection: "mongo"
+  dbase: "mongodb"
+  collection: "mongocl"
 

@@ -1,51 +1,23 @@
 package repository
 
 import (
-	"database/sql"
+	"CatsCrud/internal/models"
+	"context"
 	"fmt"
-	"github.com/labstack/gommon/log"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v4/pgxpool"
+	_ "github.com/lib/pq"
 	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
+	"github.com/stretchr/testify/assert"
+	"log"
 	"os"
 	"testing"
+	"time"
 )
 
-//func TestRespondsWithLove(t *testing.T) {
-//
-//	pool, err := dockertest.NewPool("")
-//	require.NoError(t, err, "could not connect to Docker")
-//
-//	resource, err := pool.Run("docker-gs-ping", "latest", []string{})
-//	require.NoError(t, err, "could not start container")
-//
-//	t.Cleanup(func() {
-//		require.NoError(t, pool.Purge(resource), "failed to remove container")
-//	})
-//
-//	var resp *http.Response
-//
-//	err = pool.Retry(func() error {
-//		resp, err = http.Get(fmt.Sprint("http://localhost:", resource.GetPort("8080/tcp"), "/"))
-//		if err != nil {
-//			t.Log("container not ready, waiting...")
-//			return err
-//		}
-//		return nil
-//	})
-//	require.NoError(t, err, "HTTP error")
-//	defer resp.Body.Close()
-//
-//	require.Equal(t, http.StatusOK, resp.StatusCode, "HTTP status code")
-//
-//	body, err := io.ReadAll(resp.Body)
-//	require.NoError(t, err, "failed to read HTTP body")
-//
-//	// Finally, test the business requirement!
-//	require.Contains(t, string(body), "<3", "does not respond with love?")
-//}
-
-
-
-var db *sql.DB
+var db *pgxpool.Pool
 
 func TestMain(m *testing.M) {
 	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
@@ -55,23 +27,44 @@ func TestMain(m *testing.M) {
 	}
 
 	// pulls an image, creates a container based on it and runs it
-	resource, err := pool.Run("postgres", "latest", []string{"POSTGRES_PASSWORD=secret"})
+	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "postgres",
+		Tag:        "latest",
+		Env: []string{
+			"POSTGRES_PASSWORD=secret",
+			"POSTGRES_USER=user_name",
+			"POSTGRES_DB=dbname",
+			"listen_addresses = '*'",
+		},
+	}, func(config *docker.HostConfig) {
+		// set AutoRemove to true so that stopped container goes away by itself
+		config.AutoRemove = true
+		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
+	})
 	if err != nil {
 		log.Fatalf("Could not start resource: %s", err)
 	}
 
+	hostAndPort := resource.GetHostPort("5432/tcp")
+	databaseUrl := fmt.Sprintf("postgres://user_name:secret@%s/dbname?sslmode=disable", hostAndPort)
+
+	log.Println("Connecting to database on url: ", databaseUrl)
+
+	resource.Expire(120) // Tell docker to hard kill the container in 120 seconds
+
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
-	if err := pool.Retry(func() error {
-		var err error
-		db, err = sql.Open("postgres", fmt.Sprintf("root:secret@(localhost:%s)/mysql", resource.GetPort("3306/tcp")))
+	pool.MaxWait = 180 * time.Second
+	if err = pool.Retry(func() error {
+		db, err = pgxpool.Connect(context.Background(), databaseUrl)
 		if err != nil {
 			return err
 		}
-		return db.Ping()
+		return nil
 	}); err != nil {
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
 
+	//Run tests
 	code := m.Run()
 
 	// You can't defer this because os.Exit doesn't care for defer
@@ -82,117 +75,135 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestSomething(t *testing.T) {
-	// db.Query()
+// Временное решешие по миграциям, что бы написать тесты
+func MyMigrate(pool *pgxpool.Pool) {
+	exec, err := pool.Exec(context.Background(), "CREATE TABLE cats (ID integer, Name varchar(120));")
+	log.Println(exec)
+	if err != nil {
+		log.Fatal("Fatal 2", err)
+	}
+	commandTag, err := pool.Exec(context.Background(), "INSERT INTO cats VALUES(1, 'cat'),(2, 'dog');")
+	if err != nil {
+		log.Fatal("Fatal 3", err)
+	}
+	//if commandTag.RowsAffected() != 1 {
+	//	log.Fatal("Failed to create cat")
+	//}
+	log.Println(commandTag.String())
 }
 
+// Количество элементов в таблице
+const countOfCats = 2
 
-//func StartPostgreSQL() (confPath string, cleaner func()) {
-//	pool, err := dockertest.NewPool("")
-//	if err != nil {
-//		log.Panicf("dockertest.NewPool failed: %v", err)
-//	}
-//
-//	resource, err := pool.Run(
-//		"postgres", "11",
-//		[]string{
-//			"POSTGRES_DB=restservice",
-//			"POSTGRES_PASSWORD=s3cr3t",
-//		},
-//	)
-//	if err != nil {
-//		log.Panicf("pool.Run failed: %v", err)
-//	}
-//
-//	connString := "postgres://postgres:s3cr3t@"+
-//		resource.GetHostPort("5432/tcp")+
-//		"/restservice?sslmode=disable"
-//	attempt := 0
-//	ok := false
-//	for attempt < 20 {
-//		attempt++
-//		conn, err := pgx.Connect(context.Background(), connString)
-//		if err != nil {
-//			log.Infof("pgx.Connect failed: %v, waiting... (attempt %d)",
-//				err, attempt)
-//			time.Sleep(1 * time.Second)
-//			continue
-//		}
-//
-//		_ = conn.Close(context.Background())
-//		ok = true
-//		break
-//	}
-//
-//	if !ok {
-//		_ = pool.Purge(resource)
-//		log.Panicf("Couldn't connect to PostgreSQL")
-//	}
-//
-//	tmpl, err := template.New("config").Parse(`
-//loglevel: debug
-//listen: 0.0.0.0:8080
-//db:
-//  url: {{.ConnString}}
-//`)
-//	if err != nil {
-//		_ = pool.Purge(resource)
-//		log.Panicf("template.Parse failed: %v", err)
-//	}
-//
-//	configArgs := struct {
-//		ConnString string
-//	} {
-//		ConnString: connString,
-//	}
-//	var configBuff bytes.Buffer
-//	err = tmpl.Execute(&configBuff, configArgs)
-//	if err != nil {
-//		_ = pool.Purge(resource)
-//		log.Panicf("tmpl.Execute failed: %v", err)
-//	}
-//
-//	confFile, err := ioutil.TempFile("", "config.*.yaml")
-//	if err != nil {
-//		_ = pool.Purge(resource)
-//		log.Panicf("ioutil.TempFile failed: %v", err)
-//	}
-//
-//	log.Infof("confFile.Name = %s", confFile.Name())
-//
-//	_, err = confFile.WriteString(configBuff.String())
-//	if err != nil {
-//		_ = pool.Purge(resource)
-//		log.Panicf("confFile.WriteString failed: %v", err)
-//	}
-//
-//	err = confFile.Close()
-//	if err != nil {
-//		_ = pool.Purge(resource)
-//		log.Panicf("confFile.Close failed: %v", err)
-//	}
-//
-//	cleanerFunc := func() {
-//		// purge the container
-//		err := pool.Purge(resource)
-//		if err != nil {
-//			log.Panicf("pool.Purge failed: %v", err)
-//		}
-//
-//		err = os.Remove(confFile.Name())
-//		if err != nil {
-//			log.Panicf("os.Remove failed: %v", err)
-//		}
-//	}
-//
-//	return confFile.Name(), cleanerFunc
-//}
-//
-//func TestMain(m *testing.M) {
-//	fmt.Println("About to start PostgreSQL...")
-//	confPath, stopPostgreSQL := StartPostgreSQL()
-//	fmt.Println("PostgreSQL started!")
-//
-//	fmt.Println(confPath)
-//	stopPostgreSQL()
-//}
+// Инициализация репозитория
+var rps Repository
+func NewPostgresRepositoryTest(db *pgxpool.Pool) {
+	rps = NewPostgresRepository(db)
+}
+
+func TestInit(t *testing.T)  {
+	// Делаем миграции и инициализируем репозиторий
+	MyMigrate(db)
+	NewPostgresRepositoryTest(db)
+}
+
+func TestPostgresRepository_GetAllCats(t *testing.T) {
+	// Тест
+	allcats, err := rps.GetAllCats()
+
+	// Проверка сопоставления типов
+	typeAllcats := fmt.Sprintf("%T", allcats)
+	var tr []*models.Cats
+	TypeTrue := fmt.Sprintf("%T", tr)
+	assert.Equal(t, typeAllcats, TypeTrue)
+
+	// Проверка количества элементов в базе
+	count := len(allcats)
+	assert.Equal(t, count, countOfCats)
+
+	// Проверка ошибок
+	assert.Nil(t, err)
+}
+
+func TestPostgresRepository_CreateCats(t *testing.T) {
+	// Входящие значения
+	jsonMap := make(map[string]interface{})
+	jsonMap["id"] = "3"
+	jsonMap["name"] = "cat3"
+	catTrue := models.Cats{
+		ID:   3,
+		Name: "cat3",
+	}
+
+	// Тест
+	cat, err := rps.CreateCats(jsonMap)
+
+	// Проверка возвращаемых значений
+	assert.Equal(t, cat, &catTrue)
+	assert.Nil(t, err)
+
+	// Проверка добавления в базу
+	allcats, err := rps.GetAllCats()
+	if err != nil {
+		log.Fatal(err)
+	}
+	count := len(allcats)
+	assert.Equal(t, count, countOfCats + 1)
+}
+
+func TestPostgresRepository_GetCat(t *testing.T) {
+	// Входящие значения
+	catTrue := models.Cats{
+		ID:   3,
+		Name: "cat3",
+	}
+	id := "3"
+
+	// Тест
+	cat, err := rps.GetCat(id)
+
+	// Проверка возвращаемых значений
+	assert.Equal(t, cat, &catTrue)
+	assert.Nil(t, err)
+}
+
+func TestPostgresRepository_UpdateCat(t *testing.T) {
+	// Входящие значения
+	id := "1"
+	jsonMap := make(map[string]interface{})
+	jsonMap["name"] = "dog"
+	catTrue := models.Cats{
+		ID:   1,
+		Name: "dog",
+	}
+
+	//Тест
+	cat, err := rps.UpdateCat(id, jsonMap)
+
+	// Проверка возвращаемых значений
+	assert.Equal(t, cat, &catTrue)
+	assert.Nil(t, err)
+
+	// Проверка внесения изменений в базу
+	cat, err = rps.GetCat(id)
+	if err != nil {
+		log.Fatal(err)
+	}
+	assert.Equal(t, cat, &catTrue)
+}
+
+func TestPostgresRepository_DeleteCat(t *testing.T) {
+	// Входящие значения
+	catTrue := models.Cats{
+		ID:   3,
+		Name: "cat3",
+	}
+	id := "3"
+
+	// Тест
+	cat, err := rps.DeleteCat(id)
+
+	// Проверка возвращаемых значений
+	assert.Equal(t, cat, &catTrue)
+	assert.Nil(t, err)
+}
