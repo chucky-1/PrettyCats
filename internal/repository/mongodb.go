@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"github.com/labstack/gommon/log"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,14 +22,10 @@ func RequestMongo() (*mongo.Client, context.CancelFunc) {
 
 	url := os.Getenv("MONGODB_CONNSTRING")
 
-	fmt.Println(url)
-
 	client, err := mongo.NewClient(options.Client().ApplyURI(url))
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println("Середина")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	err = client.Connect(ctx)
@@ -38,6 +33,5 @@ func RequestMongo() (*mongo.Client, context.CancelFunc) {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Всё ок!")
 	return client, cancel
 }

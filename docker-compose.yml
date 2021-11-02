@@ -4,7 +4,7 @@ services:
   app:
     depends_on:
       - db
-#      - mongo
+      - mongo
     build: ./
     ports:
       - "8000:8000"
@@ -12,7 +12,7 @@ services:
       - mynet
     environment:
       - DB_PASSWORD=testpassword
-      - MONGODB_CONNSTRING=mongodb://root:example@mongodb
+      - MONGODB_CONNSTRING=mongodb://root:example@mongo:27017/
 
   db:
     container_name: postgres
@@ -37,28 +37,18 @@ services:
     networks:
       - mynet
 
-#  mongo:
-#    image: mongo
-#    restart: always
-#    ports:
-#      - "27017:27017"
-#    environment:
-#      MONGO_INITDB_ROOT_USERNAME: root
-#      MONGO_INITDB_ROOT_PASSWORD: example
-#    networks:
-#      - mynet
-#    volumes:
-#      - roach:/data/db
-#
-#  mongo-express:
-#    image: mongo-express
-#    restart: always
-#    ports:
-#      - "8081:8081"
-#    environment:
-#      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-#      ME_CONFIG_MONGODB_ADMINPASSWORD: example
-#      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongodb:27017/
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    networks:
+      - mynet
+    volumes:
+      - roach:/data/db
 
 volumes:
   roach:

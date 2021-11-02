@@ -13,11 +13,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"log"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 )
 
 var db *pgxpool.Pool
+var hostAndPort string
 
 func TestMain(m *testing.M) {
 	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
@@ -45,7 +47,7 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Could not start resource: %s", err)
 	}
 
-	hostAndPort := resource.GetHostPort("5432/tcp")
+	hostAndPort = resource.GetHostPort("5432/tcp")
 	databaseUrl := fmt.Sprintf("postgres://user_name:secret@%s/dbname?sslmode=disable", hostAndPort)
 
 	log.Println("Connecting to database on url: ", databaseUrl)
@@ -75,21 +77,15 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// Временное решешие по миграциям, что бы написать тесты
-func MyMigrate(pool *pgxpool.Pool) {
-	exec, err := pool.Exec(context.Background(), "CREATE TABLE cats (ID integer, Name varchar(120));")
-	log.Println(exec)
+// Миграции
+func MyMigrate() {
+	cmd := exec.Command("flyway", "-url=jdbc:postgresql://" + hostAndPort + "/dbname",
+		"-user=user_name", "-password=secret", "migrate")
+	cmd.Dir = "C:/Program Files/flyway-8.0.3"
+	err := cmd.Run()
 	if err != nil {
-		log.Fatal("Fatal 2", err)
+		log.Fatal(err)
 	}
-	commandTag, err := pool.Exec(context.Background(), "INSERT INTO cats VALUES(1, 'cat'),(2, 'dog');")
-	if err != nil {
-		log.Fatal("Fatal 3", err)
-	}
-	//if commandTag.RowsAffected() != 1 {
-	//	log.Fatal("Failed to create cat")
-	//}
-	log.Println(commandTag.String())
 }
 
 // Количество элементов в таблице
@@ -103,7 +99,7 @@ func NewPostgresRepositoryTest(db *pgxpool.Pool) {
 
 func TestInit(t *testing.T)  {
 	// Делаем миграции и инициализируем репозиторий
-	MyMigrate(db)
+	MyMigrate()
 	NewPostgresRepositoryTest(db)
 }
 
@@ -127,19 +123,16 @@ func TestPostgresRepository_GetAllCats(t *testing.T) {
 
 func TestPostgresRepository_CreateCats(t *testing.T) {
 	// Входящие значения
-	jsonMap := make(map[string]interface{})
-	jsonMap["id"] = "3"
-	jsonMap["name"] = "cat3"
-	catTrue := models.Cats{
+	catsTrue := models.Cats{
 		ID:   3,
 		Name: "cat3",
 	}
 
 	// Тест
-	cat, err := rps.CreateCats(jsonMap)
+	cat, err := rps.CreateCats(catsTrue)
 
 	// Проверка возвращаемых значений
-	assert.Equal(t, cat, &catTrue)
+	assert.Equal(t, cat, &catsTrue)
 	assert.Nil(t, err)
 
 	// Проверка добавления в базу
@@ -170,15 +163,13 @@ func TestPostgresRepository_GetCat(t *testing.T) {
 func TestPostgresRepository_UpdateCat(t *testing.T) {
 	// Входящие значения
 	id := "1"
-	jsonMap := make(map[string]interface{})
-	jsonMap["name"] = "dog"
 	catTrue := models.Cats{
 		ID:   1,
-		Name: "dog",
+		Name: "dogs",
 	}
 
 	//Тест
-	cat, err := rps.UpdateCat(id, jsonMap)
+	cat, err := rps.UpdateCat(id, catTrue)
 
 	// Проверка возвращаемых значений
 	assert.Equal(t, cat, &catTrue)

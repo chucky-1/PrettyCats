@@ -26,20 +26,19 @@ func(h *CatHandler) GetAllCats(c echo.Context) error {
 }
 
 func (h *CatHandler) CreateCats(c echo.Context) error {
-	jsonMap := make(map[string]interface{})
-	err := json.NewDecoder(c.Request().Body).Decode(&jsonMap)
+	cats := new(models.Cats)
+	err := json.NewDecoder(c.Request().Body).Decode(cats)
 	if err != nil {
-		return err
-	}
-	if jsonMap["name"] == nil {
-		//return c.JSON(400, new(models.Cats))
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
-	if jsonMap["id"] == nil {
+	if cats.Name == "" {
+		return c.JSON(http.StatusBadRequest, new(models.Cats))
+	}
+	if cats.ID == 0 {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 
-	cat, err := h.src.CreateCatsServ(jsonMap)
+	cat, err := h.src.CreateCatsServ(*cats)
 	if err != nil {
 		return err
 	}
@@ -61,6 +60,8 @@ func (h *CatHandler) GetCat(c echo.Context) error {
 }
 
 func (h *CatHandler) UpdateCat(c echo.Context) error {
+	cats := new(models.Cats)
+
 	// Достаём ID
 	id := c.Param("id")
 	// Проверка что id передан
@@ -68,21 +69,23 @@ func (h *CatHandler) UpdateCat(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 	// Проверка что id можно перевезти в int
-	_, err := strconv.Atoi(id)
+	idInt, err := strconv.Atoi(id)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
+	// Присваиваем id модели
+	cats.ID = int32(idInt)
 
-	jsonMap := make(map[string]interface{})
-	err = json.NewDecoder(c.Request().Body).Decode(&jsonMap)
+	err = json.NewDecoder(c.Request().Body).Decode(&cats)
 	if err != nil {
-		return err
+		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
-	if jsonMap["name"] == nil {
+	// Проверка что name передан
+	if cats.Name == "" {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 
-	cat, err := h.src.UpdateCatServ(id, jsonMap)
+	cat, err := h.src.UpdateCatServ(id, *cats)
 	if err != nil {
 		return err
 	}

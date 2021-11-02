@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"CatsCrud/internal/service/mymock"
+	"CatsCrud/internal/service/mock"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -21,7 +21,7 @@ func TestCatHandler_GetAllCats(t *testing.T) {
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	srv := mymock.NewMockCatServ()
+	srv := mock.NewMockCatServ()
 	catHandler = NewCatHandler(srv)
 
 	// Assertions
@@ -56,6 +56,12 @@ func TestCatHandler_CreateCats(t *testing.T) {
 			exceptStatusCode: http.StatusBadRequest,
 			exceptBody: `{"id":0,"name":""}`,
 		},
+		{
+			name: "Params isn't valid",
+			inputJson: `{"id":"1", "name":"Jon Snow"}`,
+			exceptStatusCode: http.StatusBadRequest,
+			exceptBody: `{"id":0,"name":""}`,
+		},
 	}
 
 	for _, TestCase := range TestTable {
@@ -65,7 +71,7 @@ func TestCatHandler_CreateCats(t *testing.T) {
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			srv := mymock.NewMockCatServ()
+			srv := mock.NewMockCatServ()
 			catHandler = NewCatHandler(srv)
 
 			if assert.NoError(t, catHandler.CreateCats(c)) {
@@ -108,7 +114,7 @@ func TestCatHandler_GetCat(t *testing.T) {
 		c.SetPath("/cats/:id")
 		c.SetParamNames(TestCase.setParamNames)
 		c.SetParamValues(TestCase.setParamValues)
-		srv := mymock.NewMockCatServ()
+		srv := mock.NewMockCatServ()
 		catHandler = NewCatHandler(srv)
 
 
@@ -160,6 +166,14 @@ func TestCatHandler_UpdateCat(t *testing.T) {
 			exceptStatusCode: http.StatusBadRequest,
 			exceptBody: `{"id":0,"name":""}`,
 		},
+		{
+			name: "Name isn't string",
+			setParamNames: "id",
+			setParamValues: "1",
+			inputJson: `{"name":1}`,
+			exceptStatusCode: http.StatusBadRequest,
+			exceptBody: `{"id":0,"name":""}`,
+		},
 	}
 
 	for _, TestCase := range TestTable {
@@ -170,7 +184,7 @@ func TestCatHandler_UpdateCat(t *testing.T) {
 		c.SetPath("/cats/:id")
 		c.SetParamNames(TestCase.setParamNames)
 		c.SetParamValues(TestCase.setParamValues)
-		srv := mymock.NewMockCatServ()
+		srv := mock.NewMockCatServ()
 		catHandler = NewCatHandler(srv)
 
 		if assert.NoError(t, catHandler.UpdateCat(c)) {
@@ -219,7 +233,7 @@ func TestCatHandler_DeleteCat(t *testing.T) {
 		c.SetPath("/cats/:id")
 		c.SetParamNames(TestCase.setParamNames)
 		c.SetParamValues(TestCase.setParamValues)
-		srv := mymock.NewMockCatServ()
+		srv := mock.NewMockCatServ()
 		catHandler = NewCatHandler(srv)
 
 		if assert.NoError(t, catHandler.DeleteCat(c)) {

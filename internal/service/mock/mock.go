@@ -1,4 +1,4 @@
-package mymock
+package mock
 
 import (
 	"CatsCrud/internal/models"
@@ -21,12 +21,8 @@ func (m *MockCatServ) GetAllCatsServ() ([]*models.Cats, error) {
 	return allcats, nil
 }
 
-func (m *MockCatServ) CreateCatsServ(jsonMap map[string]interface{}) (*models.Cats, error) {
-	cat := models.Cats{
-		ID:   1,
-		Name: "Jon Snow",
-	}
-	return &cat, nil
+func (m *MockCatServ) CreateCatsServ(cats models.Cats) (*models.Cats, error) {
+	return &cats, nil
 }
 
 func (m *MockCatServ) GetCatServ(id string) (*models.Cats, error) {
@@ -37,12 +33,8 @@ func (m *MockCatServ) GetCatServ(id string) (*models.Cats, error) {
 	return &cat, nil
 }
 
-func (m *MockCatServ) UpdateCatServ(id string, jsonMap map[string]interface{}) (*models.Cats, error) {
-	cat := models.Cats{
-		ID:   1,
-		Name: "Jon Snow",
-	}
-	return &cat, nil
+func (m *MockCatServ) UpdateCatServ(id string, cats models.Cats) (*models.Cats, error) {
+	return &cats, nil
 }
 
 func (m *MockCatServ) DeleteCatServ(id string) (*models.Cats, error) {

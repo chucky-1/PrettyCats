@@ -4,7 +4,6 @@ import (
 	"CatsCrud/internal/models"
 	"context"
 	"errors"
-	"fmt"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
@@ -24,9 +23,9 @@ type MongoRepository struct {
 
 type Repository interface {
 	GetAllCats() ([]*models.Cats, error)
-	CreateCats(jsonMap map[string]interface{}) (*models.Cats, error)
+	CreateCats(cats models.Cats) (*models.Cats, error)
 	GetCat(id string) (*models.Cats, error)
-	UpdateCat(id string, jsonMap map[string]interface{}) (*models.Cats, error)
+	UpdateCat(id string, cats models.Cats) (*models.Cats, error)
 	DeleteCat(id string) (*models.Cats, error)
 }
 
@@ -66,32 +65,18 @@ func (c *PostgresRepository) GetAllCats() ([]*models.Cats, error) {
 	return allcats, nil
 }
 
-func (c *PostgresRepository) CreateCats(jsonMap map[string]interface{}) (*models.Cats, error) {
-
-	var cat models.Cats
-
-	// Достаём id, name. Id преобразуем в int
-	var id interface{} = jsonMap["id"]
-	idInt, err := strconv.Atoi(id.(string))
-	if err != nil {
-		return &cat, err
-	}
-
-	// Присваиваем значения в структуру models.Cats
-	cat.ID = int32(idInt)
-	name := jsonMap["name"]
-	cat.Name = fmt.Sprintf("%v", name)
+func (c *PostgresRepository) CreateCats(cats models.Cats) (*models.Cats, error) {
 
 	// Добавляем в базу данных
-	commandTag, err := c.conn.Exec(context.Background(), "INSERT INTO cats VALUES ($1, $2)", idInt, name)
+	commandTag, err := c.conn.Exec(context.Background(), "INSERT INTO cats VALUES ($1, $2)", cats.ID, cats.Name)
 	if err != nil {
-		return &cat, err
+		return &cats, err
 	}
 	if commandTag.RowsAffected() != 1 {
-		return &cat, errors.New("Failed to create cat")
+		return &cats, errors.New("Failed to create cat")
 	}
 
-	return &cat, nil
+	return &cats, nil
 }
 
 func (c *PostgresRepository) GetCat(id string) (*models.Cats, error) {
@@ -117,33 +102,27 @@ func (c *PostgresRepository) GetCat(id string) (*models.Cats, error) {
 	return &cat, nil
 }
 
-func (c *PostgresRepository) UpdateCat(id string, jsonMap map[string]interface{}) (*models.Cats, error) {
-
-	var cat models.Cats
+func (c *PostgresRepository) UpdateCat(id string, cats models.Cats) (*models.Cats, error) {
 
 	// Преобразуем id в int
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		return &cat, err
+		return &cats, err
 	}
-
-	// Достаём name
-	name := jsonMap["name"]
 
 	// Обновляем models.Cat
-	cat.ID = int32(idInt)
-	cat.Name = fmt.Sprintf("%v", name)
+	cats.ID = int32(idInt)
 
 	// Вносим изменения в базу данных
-	commandTag, err := c.conn.Exec(context.Background(), "UPDATE cats SET name = $1 WHERE id = $2", name, idInt)
+	commandTag, err := c.conn.Exec(context.Background(), "UPDATE cats SET name = $1 WHERE id = $2", cats.Name, cats.ID)
 	if err != nil {
-		return &cat, err
+		return &cats, err
 	}
 	if commandTag.RowsAffected() != 1 {
-		return &cat, errors.New("Row isn't update")
+		return &cats, errors.New("Row isn't update")
 	}
 
-	return &cat, nil
+	return &cats, nil
 }
 
 func (c *PostgresRepository) DeleteCat(id string) (*models.Cats, error) {
@@ -193,37 +172,19 @@ func (c *MongoRepository) GetAllCats() ([]*models.Cats, error) {
 	return allcats, nil
 }
 
-func (c *MongoRepository) CreateCats(jsonMap map[string]interface{}) (*models.Cats, error) {
-
-	// Инициализация структуры models.Cats
-	cat := models.Cats{
-		ID:   0,
-		Name: "",
-	}
-
-	// Достаём id, name. Id преобразуем в int
-	var id interface{} = jsonMap["id"]
-	idInt, err := strconv.Atoi(id.(string))
-	if err != nil {
-		return &cat, err
-	}
-
-	// Присваиваем значения в структуру models.Cats
-	cat.ID = int32(idInt)
-	name := jsonMap["name"]
-	cat.Name = fmt.Sprintf("%v", name)
+func (c *MongoRepository) CreateCats(cats models.Cats) (*models.Cats, error) {
 
 	collection := c.client.Database(viper.GetString("mongodb.dbase")).Collection(viper.GetString("mongodb.collection"))
 
 	docs := []interface{}{
-		bson.D{primitive.E{Key: "id" , Value: cat.ID},{Key: "name" , Value: cat.Name}},
+		bson.D{primitive.E{Key: "id" , Value: cats.ID},{Key: "name" , Value: cats.Name}},
 	}
 
 	_, insertErr := collection.InsertMany(context.TODO(), docs)
 	if insertErr != nil {
 		log.Fatal(insertErr)
 	}
-	return &cat, nil
+	return &cats, nil
 }
 
 func (c *MongoRepository) GetCat(id string) (*models.Cats, error) {
@@ -243,31 +204,25 @@ func (c *MongoRepository) GetCat(id string) (*models.Cats, error) {
 	return &cat, nil
 }
 
-func (c *MongoRepository) UpdateCat(id string, jsonMap map[string]interface{}) (*models.Cats, error) {
-	var cat models.Cats
-
+func (c *MongoRepository) UpdateCat(id string, cats models.Cats) (*models.Cats, error) {
 	// Преобразуем id в int
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		return &cat, err
+		return &cats, err
 	}
 
-	// Достаём name
-	name := jsonMap["name"]
-
 	// Обновляем models.Cat
-	cat.ID = int32(idInt)
-	cat.Name = fmt.Sprintf("%v", name)
+	cats.ID = int32(idInt)
 
 	// Вносим изменения в базу данных
 	collection := c.client.Database(viper.GetString("mongodb.dbase")).Collection(viper.GetString("mongodb.collection"))
-	filter := bson.D{primitive.E{Key: "id", Value: idInt}}
-	update := bson.D{primitive.E{Key: "$set", Value: bson.D{primitive.E{Key: "name", Value: name}}}}
+	filter := bson.D{primitive.E{Key: "id", Value: cats.ID}}
+	update := bson.D{primitive.E{Key: "$set", Value: bson.D{primitive.E{Key: "name", Value: cats.Name}}}}
 	_, err = collection.UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return &cat, nil
+	return &cats, nil
 }
 
 func (c *MongoRepository) DeleteCat(id string) (*models.Cats, error) {

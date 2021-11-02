@@ -26,7 +26,7 @@ func main() {
 
 		rps = repository2.NewPostgresRepository(conn)
 	} else if flag == 2 {
-		// Соединение с mongo
+		//Соединение с mongo
 		client, cancel := repository2.RequestMongo()
 		defer cancel()
 
