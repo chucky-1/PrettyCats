@@ -14,17 +14,23 @@ const flag = 1
 func main() {
 	e := echo.New()
 
+	//// Middleware
+	//e.Use(middleware.Logger())
+	//e.Use(middleware.Recover())
+
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, Cats!")
 	})
 
 	var rps repository2.Repository
+	var rpsAuth repository2.Auth
 	if flag == 1 {
 		// Соединение с postgres
 		conn := repository2.RequestDB()
 		defer conn.Close()
 
 		rps = repository2.NewPostgresRepository(conn)
+		rpsAuth = repository2.NewPostgresRepository(conn)
 	} else if flag == 2 {
 		//Соединение с mongo
 		client, cancel := repository2.RequestMongo()
@@ -41,6 +47,22 @@ func main() {
 	e.GET("/cats/:id", hndlr.GetCat)
 	e.PUT("/cats/:id", hndlr.UpdateCat)
 	e.DELETE("/cats/:id", hndlr.DeleteCat)
+
+	var srvAuth service.Auth
+	srvAuth = service.NewUserAuthService(rpsAuth)
+	hndlrAuth := handler.NewUserAuthHandler(srvAuth)
+	e.POST("/register", hndlrAuth.SignUp)
+
+	//e.POST("/login", handler.Login)
+	//r := e.Group("/restricted")
+	//
+	////Configure middleware with the custom claims type
+	//config := middleware.JWTConfig{
+	//	Claims:     &models.JwtCustomClaims{},
+	//	SigningKey: []byte("secret"),
+	//}
+	//r.Use(middleware.JWTWithConfig(config))
+	//r.GET("", handler.Restricted)
 
 	e.Logger.Fatal(e.Start(":8000"))
 }

@@ -3,6 +3,7 @@ module CatsCrud
 go 1.17
 
 require (
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang-migrate/migrate/v4 v4.15.1
 	github.com/jackc/pgx/v4 v4.13.0
 	github.com/joho/godotenv v1.4.0
@@ -60,7 +61,6 @@ require (
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.1 // indirect
