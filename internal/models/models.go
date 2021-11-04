@@ -1,9 +1,5 @@
 package models
 
-import (
-	"github.com/golang-jwt/jwt"
-)
-
 
 type Cats struct {
 	ID   int32  `json:"id" bson:"id"`
@@ -15,10 +11,4 @@ type User struct {
 	Name 	 string `json:"name"`
 	Username string `json:"username"`
 	Password string `json:"password"`
-}
-
-type JwtCustomClaims struct {
-	Name  string `json:"name"`
-	Admin bool   `json:"admin"`
-	jwt.StandardClaims
 }

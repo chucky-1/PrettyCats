@@ -5,6 +5,8 @@ import (
 	repository2 "CatsCrud/internal/repository"
 	"CatsCrud/internal/service"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"github.com/spf13/viper"
 	"net/http"
 )
 
@@ -14,9 +16,9 @@ const flag = 1
 func main() {
 	e := echo.New()
 
-	//// Middleware
-	//e.Use(middleware.Logger())
-	//e.Use(middleware.Recover())
+	// Middleware
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
 
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, Cats!")
@@ -52,17 +54,17 @@ func main() {
 	srvAuth = service.NewUserAuthService(rpsAuth)
 	hndlrAuth := handler.NewUserAuthHandler(srvAuth)
 	e.POST("/register", hndlrAuth.SignUp)
+	e.POST("/login", hndlrAuth.SignIn)
 
-	//e.POST("/login", handler.Login)
-	//r := e.Group("/restricted")
-	//
-	////Configure middleware with the custom claims type
-	//config := middleware.JWTConfig{
-	//	Claims:     &models.JwtCustomClaims{},
-	//	SigningKey: []byte("secret"),
-	//}
-	//r.Use(middleware.JWTWithConfig(config))
-	//r.GET("", handler.Restricted)
+	r := e.Group("/restrict")
+	{
+		config := middleware.JWTConfig{
+			Claims:     &service.JwtCustomClaims{},
+			SigningKey: []byte(viper.GetString("KEY_FOR_SIGNATURE_JWT")),
+		}
+		r.Use(middleware.JWTWithConfig(config))
+		r.GET("", hndlrAuth.Restricted)
+	}
 
 	e.Logger.Fatal(e.Start(":8000"))
 }

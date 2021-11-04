@@ -4,7 +4,8 @@ port: ":8000"
 db:
   pos: "postgres"
   username: "user"
-  host: "postgres"
+# ПОМЕНЯТЬ ХОСТ НА "postgres" при билдинге
+  host: "localhost"
   port: "5432"
   dbase: "postgres"
 
