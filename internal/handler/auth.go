@@ -16,6 +16,16 @@ func NewUserAuthHandler(src service.Auth) *UserAuthHandler {
 	return &UserAuthHandler{src: src}
 }
 
+// @Summary SignUp
+// @Tags auth
+// @Description decode params and send it in service for create account
+// @Accept json
+// @Produce json
+// @Param user body models.User true "user"
+// @Success 200 {integer} integer
+// @Failure 400 {object} models.User
+// @Failure 500 {object} models.User
+// @Router /register [post]
 func (h *UserAuthHandler) SignUp(c echo.Context) error {
 	var user models.User
 
@@ -42,6 +52,16 @@ type SignInInput struct {
 	Password string `json:"password"`
 }
 
+// @Summary SignIn
+// @Tags auth
+// @Description decode params and send them in service for generate token
+// @Accept json
+// @Produce json
+// @Param input body SignInInput true "input"
+// @Success 200 {string} string "token"
+// @Failure 400 {object} models.User
+// @Failure 500 {object} models.User
+// @Router /login [post]
 func (h *UserAuthHandler) SignIn(c echo.Context) error {
 	var input SignInInput
 

@@ -17,6 +17,12 @@ func NewCatHandler(srv service.Service) *CatHandler {
 	return &CatHandler{src: srv}
 }
 
+// @Summary GetAllCats
+// @Tags Cats
+// @Description collect all cats in array
+// @Produce json
+// @Success 200 {array} models.Cats
+// @Router /cats [get]
 func(h *CatHandler) GetAllCats(c echo.Context) error {
 	allcats, err :=  h.src.GetAllCatsServ()
 	if err != nil {
@@ -25,6 +31,15 @@ func(h *CatHandler) GetAllCats(c echo.Context) error {
 	return c.JSON(http.StatusOK, allcats)
 }
 
+// @Summary CreateCats
+// @Tags Cats
+// @Description create cat
+// @Accept json
+// @Produce json
+// @Param cats body models.Cats true "cats"
+// @Success 201 {object} models.Cats
+// @Failure 400 {object} models.Cats
+// @Router /cats [post]
 func (h *CatHandler) CreateCats(c echo.Context) error {
 	cats := new(models.Cats)
 	err := json.NewDecoder(c.Request().Body).Decode(cats)
@@ -45,6 +60,16 @@ func (h *CatHandler) CreateCats(c echo.Context) error {
 	return c.JSON(http.StatusCreated, cat)
 }
 
+// @Summary GetCat
+// @Tags Cats
+// @Description get cat by id
+// @Accept json
+// @Produce json
+// @Param id path int true "id"
+// @Success 200 {object} models.Cats
+// @Failure 400 {object} models.Cats
+// @Failure 500 {string} string
+// @Router /cats/{id} [get]
 func (h *CatHandler) GetCat(c echo.Context) error {
 	// Достаём ID
 	id := c.Param("id")
@@ -59,6 +84,17 @@ func (h *CatHandler) GetCat(c echo.Context) error {
 	return c.JSON(http.StatusOK, cat)
 }
 
+// @Summary UpdateCat
+// @Tags Cats
+// @Description update cat by id
+// @Accept json
+// @Produce json
+// @Param id path int true "id"
+// @Param cats body models.Cats true "cats"
+// @Success 200 {object} models.Cats
+// @Failure 400 {object} models.Cats
+// @Failure 500 {string} string
+// @Router /cats/{id} [put]
 func (h *CatHandler) UpdateCat(c echo.Context) error {
 	cats := new(models.Cats)
 
@@ -92,6 +128,16 @@ func (h *CatHandler) UpdateCat(c echo.Context) error {
 	return c.JSON(http.StatusOK, cat)
 }
 
+// @Summary DeleteCat
+// @Tags Cats
+// @Description delete cat by id
+// @Accept json
+// @Produce json
+// @Param id path int true "id"
+// @Success 200 {object} models.Cats
+// @Failure 400 {object} models.Cats
+// @Failure 500 {string} string
+// @Router /cats/{id} [delete]
 func (h *CatHandler) DeleteCat(c echo.Context) error {
 	// Достаём ID
 	id := c.Param("id")

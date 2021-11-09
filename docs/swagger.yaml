@@ -1,0 +1,248 @@
+basePath: /
+definitions:
+  handler.SignInInput:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  models.Cats:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  models.User:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8000
+info:
+  contact: {}
+  description: This simple application is written for teaching Go.
+  title: Cats CRUD
+  version: "1.0"
+paths:
+  /cats:
+    get:
+      description: collect all cats in array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Cats'
+            type: array
+      summary: GetAllCats
+      tags:
+      - Cats
+    post:
+      consumes:
+      - application/json
+      description: create cat
+      parameters:
+      - description: cats
+        in: body
+        name: cats
+        required: true
+        schema:
+          $ref: '#/definitions/models.Cats'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Cats'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Cats'
+      summary: CreateCats
+      tags:
+      - Cats
+  /cats/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: delete cat by id
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Cats'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Cats'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: DeleteCat
+      tags:
+      - Cats
+    get:
+      consumes:
+      - application/json
+      description: get cat by id
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Cats'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Cats'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: GetCat
+      tags:
+      - Cats
+    put:
+      consumes:
+      - application/json
+      description: update cat by id
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: cats
+        in: body
+        name: cats
+        required: true
+        schema:
+          $ref: '#/definitions/models.Cats'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Cats'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Cats'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: UpdateCat
+      tags:
+      - Cats
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: decode params and send them in service for generate token
+      parameters:
+      - description: input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handler.SignInInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: token
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.User'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.User'
+      summary: SignIn
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: decode params and send it in service for create account
+      parameters:
+      - description: user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: integer
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.User'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.User'
+      summary: SignUp
+      tags:
+      - auth
+  /restrict:
+    get:
+      description: example closed page
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Restricted
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

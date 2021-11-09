@@ -5,13 +5,27 @@ import (
 	repository2 "CatsCrud/internal/repository"
 	"CatsCrud/internal/service"
 	"github.com/labstack/echo/v4"
+	"github.com/swaggo/echo-swagger"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/viper"
 	"net/http"
+
+	_ "CatsCrud/docs"
 )
 
 // 1 - postgres, 2 - mongo
 const flag = 1
+
+// @title Cats CRUD
+// @version 1.0
+// @description This simple application is written for teaching Go.
+
+// @host localhost:8000
+// @BasePath /
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 
 func main() {
 	e := echo.New()
@@ -68,5 +82,6 @@ func main() {
 		r.GET("", hndlrAuth.Restricted)
 	}
 
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 	e.Logger.Fatal(e.Start(":8000"))
 }
