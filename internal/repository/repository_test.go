@@ -3,6 +3,7 @@ package repository
 import (
 	"CatsCrud/internal/models"
 	"context"
+	"errors"
 	"fmt"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -93,8 +94,10 @@ const countOfCats = 2
 
 // Инициализация репозитория
 var rps Repository
+var rpsAuth Auth
 func NewPostgresRepositoryTest(db *pgxpool.Pool) {
 	rps = NewPostgresRepository(db)
+	rpsAuth = NewPostgresRepository(db)
 }
 
 func TestInit(t *testing.T)  {
@@ -197,4 +200,90 @@ func TestPostgresRepository_DeleteCat(t *testing.T) {
 	// Проверка возвращаемых значений
 	assert.Equal(t, cat, &catTrue)
 	assert.Nil(t, err)
+}
+
+func TestPostgresRepository_CreateUser(t *testing.T) {
+	TestTable := []struct{
+		name string
+		user models.User
+		exceptError error
+	}{
+		{
+			name: "OK",
+			user: models.User{
+				ID: 1,
+				Name:     "Jon Snow",
+				Username: "Jonny",
+				Password: "Jon25@ew5",
+			},
+			exceptError: nil,
+		},
+	}
+
+	for _, TestCase := range TestTable {
+		t.Run(TestCase.name, func(t *testing.T) {
+			id, err := rpsAuth.CreateUser(TestCase.user)
+
+			// Проверка на возвращаемые значения
+			assert.Equal(t, TestCase.user.ID, id)
+			assert.Equal(t, TestCase.exceptError, err)
+
+			// Проверка на добавление в базу
+			var newUser models.User
+			err = db.QueryRow(context.Background(), "SELECT id, name, username, password " +
+				"FROM users WHERE username = $1", TestCase.user.Username).Scan(
+					&newUser.ID, &newUser.Name, &newUser.Username, &newUser.Password)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			assert.Equal(t, TestCase.user, newUser, "User didn't corrected to save")
+		})
+	}
+}
+
+func TestMongoRepository_GetUser(t *testing.T) {
+	TestTable := []struct{
+		name string
+		inputUsername string
+		inputPassword string
+		expectUser models.User
+		exceptError error
+	}{
+		{
+			name: "OK",
+			inputUsername: "Jonny",
+			inputPassword: "Jon25@ew5",
+			expectUser: models.User{
+				ID:       1,
+				Name:     "Jon Snow",
+				Username: "Jonny",
+				Password: "Jon25@ew5",
+			},
+			exceptError: nil,
+		},
+		{
+			name: "user isn't in database",
+			inputUsername: "Bob",
+			inputPassword: "random",
+			expectUser: *new(models.User),
+			exceptError: errors.New("error at working with database"),
+		},
+		{
+			name: "password isn't corrected",
+			inputUsername: "Jonny",
+			inputPassword: "random",
+			expectUser: *new(models.User),
+			exceptError: errors.New("password isn't corrected"),
+		},
+	}
+
+	for _, TestCase := range TestTable {
+		t.Run(TestCase.name, func(t *testing.T) {
+			user, err := rpsAuth.GetUser(TestCase.inputUsername, TestCase.inputPassword)
+
+			assert.Equal(t, TestCase.expectUser, user)
+			assert.Equal(t, TestCase.exceptError, err)
+		})
+	}
 }

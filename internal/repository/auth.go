@@ -4,6 +4,9 @@ import (
 	"CatsCrud/internal/models"
 	"context"
 	"errors"
+	"github.com/labstack/gommon/log"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Auth interface {
@@ -43,5 +46,23 @@ func (c *PostgresRepository) GetUser (username, password string) (models.User, e
 
 
 func (c *MongoRepository) CreateUser(user models.User) (int, error) {
-	return 0, nil
+	collection := c.client.Database("users").Collection("users")
+
+	docs := []interface{}{
+		bson.D{primitive.E{Key: "name", Value: user.Name}, {Key: "username", Value: user.Username},
+			{Key: "password", Value: user.Password}},
+	}
+
+	_, insertErr := collection.InsertMany(context.TODO(), docs)
+	if insertErr != nil {
+		log.Fatal(insertErr)
+	}
+
+	id := 1
+
+	return id, nil
+}
+
+func (c *MongoRepository) GetUser(username, password string) (models.User, error) {
+	return *new(models.User), nil
 }

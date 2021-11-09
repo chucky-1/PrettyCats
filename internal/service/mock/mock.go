@@ -44,3 +44,14 @@ func (m *MockCatServ) DeleteCatServ(id string) (*models.Cats, error) {
 	}
 	return &cat, nil
 }
+
+func (m *MockCatServ) CreateUserServ(user models.User) (int, error) {
+	user.ID = 1
+	return user.ID, nil
+}
+
+func (m *MockCatServ) GenerateToken(username string, password string) (t string, err error) {
+	// Рабочий токен
+	t = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibmFtZSI6IkpvbiBTbm93IiwiZXhwIjoxOTUxNzQ5NjE5fQ.qdAUCQt2nAdKxgqTVVieqn0gF-yiIKtOevOCSHN7DvU"
+	return t, nil
+}

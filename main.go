@@ -21,6 +21,7 @@ func main() {
 	e.Use(middleware.Recover())
 
 	e.GET("/", func(c echo.Context) error {
+		 c.Set("Dima", "27")
 		return c.String(http.StatusOK, "Hello, Cats!")
 	})
 
@@ -39,6 +40,7 @@ func main() {
 		defer cancel()
 
 		rps = repository2.NewMongoRepository(client)
+		rpsAuth = repository2.NewMongoRepository(client)
 	}
 
 	var srv service.Service
@@ -59,7 +61,7 @@ func main() {
 	r := e.Group("/restrict")
 	{
 		config := middleware.JWTConfig{
-			Claims:     &service.JwtCustomClaims{},
+			Claims:     new(service.JwtCustomClaims),
 			SigningKey: []byte(viper.GetString("KEY_FOR_SIGNATURE_JWT")),
 		}
 		r.Use(middleware.JWTWithConfig(config))

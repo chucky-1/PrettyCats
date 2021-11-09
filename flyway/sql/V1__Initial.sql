@@ -5,7 +5,7 @@ CREATE TABLE cats (
 
 CREATE TABLE users (
     ID SERIAL PRIMARY KEY,
-    Name varchar(120),
+    Name varchar(120) NOT NULL,
     Username varchar(120),
     Password varchar(120)
 );
