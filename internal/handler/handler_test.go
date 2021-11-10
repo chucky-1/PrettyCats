@@ -62,6 +62,12 @@ func TestCatHandler_CreateCats(t *testing.T) {
 			exceptStatusCode: http.StatusBadRequest,
 			exceptBody: `{"id":0,"name":""}`,
 		},
+		{
+			name: "name too small",
+			inputJson: `{"id":1,"name":"Jo"}`,
+			exceptStatusCode: http.StatusBadRequest,
+			exceptBody: `{"id":0,"name":""}`,
+		},
 	}
 
 	for _, TestCase := range TestTable {
@@ -107,21 +113,22 @@ func TestCatHandler_GetCat(t *testing.T) {
 	}
 
 	for _, TestCase := range TestTable {
-		e := echo.New()
-		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		rec := httptest.NewRecorder()
-		c := e.NewContext(req, rec)
-		c.SetPath("/cats/:id")
-		c.SetParamNames(TestCase.setParamNames)
-		c.SetParamValues(TestCase.setParamValues)
-		srv := mock.NewMockCatServ()
-		catHandler = NewCatHandler(srv)
+		t.Run(TestCase.name, func(t *testing.T) {
+			e := echo.New()
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			c.SetPath("/cats/:id")
+			c.SetParamNames(TestCase.setParamNames)
+			c.SetParamValues(TestCase.setParamValues)
+			srv := mock.NewMockCatServ()
+			catHandler = NewCatHandler(srv)
 
-
-		if assert.NoError(t, catHandler.GetCat(c)) {
-			assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
-			assert.Equal(t, TestCase.exceptBody, strings.Trim(rec.Body.String(), "\n"))
-		}
+			if assert.NoError(t, catHandler.GetCat(c)) {
+				assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
+				assert.Equal(t, TestCase.exceptBody, strings.Trim(rec.Body.String(), "\n"))
+			}
+		})
 	}
 }
 
@@ -177,20 +184,22 @@ func TestCatHandler_UpdateCat(t *testing.T) {
 	}
 
 	for _, TestCase := range TestTable {
-		e := echo.New()
-		req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(TestCase.inputJson))
-		rec := httptest.NewRecorder()
-		c := e.NewContext(req, rec)
-		c.SetPath("/cats/:id")
-		c.SetParamNames(TestCase.setParamNames)
-		c.SetParamValues(TestCase.setParamValues)
-		srv := mock.NewMockCatServ()
-		catHandler = NewCatHandler(srv)
+		t.Run(TestCase.name, func(t *testing.T) {
+			e := echo.New()
+			req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(TestCase.inputJson))
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			c.SetPath("/cats/:id")
+			c.SetParamNames(TestCase.setParamNames)
+			c.SetParamValues(TestCase.setParamValues)
+			srv := mock.NewMockCatServ()
+			catHandler = NewCatHandler(srv)
 
-		if assert.NoError(t, catHandler.UpdateCat(c)) {
-			assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
-			assert.Equal(t, TestCase.exceptBody, strings.Trim(rec.Body.String(), "\n"))
-		}
+			if assert.NoError(t, catHandler.UpdateCat(c)) {
+				assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
+				assert.Equal(t, TestCase.exceptBody, strings.Trim(rec.Body.String(), "\n"))
+			}
+		})
 	}
 }
 
@@ -226,19 +235,21 @@ func TestCatHandler_DeleteCat(t *testing.T) {
 	}
 
 	for _, TestCase := range TestTable {
-		e := echo.New()
-		req := httptest.NewRequest(http.MethodPut, "/", nil)
-		rec := httptest.NewRecorder()
-		c := e.NewContext(req, rec)
-		c.SetPath("/cats/:id")
-		c.SetParamNames(TestCase.setParamNames)
-		c.SetParamValues(TestCase.setParamValues)
-		srv := mock.NewMockCatServ()
-		catHandler = NewCatHandler(srv)
+		t.Run(TestCase.name, func(t *testing.T) {
+			e := echo.New()
+			req := httptest.NewRequest(http.MethodPut, "/", nil)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			c.SetPath("/cats/:id")
+			c.SetParamNames(TestCase.setParamNames)
+			c.SetParamValues(TestCase.setParamValues)
+			srv := mock.NewMockCatServ()
+			catHandler = NewCatHandler(srv)
 
-		if assert.NoError(t, catHandler.DeleteCat(c)) {
-			assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
-			assert.Equal(t, TestCase.exceptBody, strings.Trim(rec.Body.String(), "\n"))
-		}
+			if assert.NoError(t, catHandler.DeleteCat(c)) {
+				assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
+				assert.Equal(t, TestCase.exceptBody, strings.Trim(rec.Body.String(), "\n"))
+			}
+		})
 	}
 }

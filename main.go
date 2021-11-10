@@ -5,9 +5,9 @@ import (
 	repository2 "CatsCrud/internal/repository"
 	"CatsCrud/internal/service"
 	"github.com/labstack/echo/v4"
-	"github.com/swaggo/echo-swagger"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/viper"
+	"github.com/swaggo/echo-swagger"
 	"net/http"
 
 	_ "CatsCrud/docs"
@@ -26,7 +26,6 @@ const flag = 1
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
 // @name Authorization
-
 func main() {
 	e := echo.New()
 
@@ -35,7 +34,6 @@ func main() {
 	e.Use(middleware.Recover())
 
 	e.GET("/", func(c echo.Context) error {
-		 c.Set("Dima", "27")
 		return c.String(http.StatusOK, "Hello, Cats!")
 	})
 

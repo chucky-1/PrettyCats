@@ -4,6 +4,7 @@ import (
 	"CatsCrud/internal/models"
 	"CatsCrud/internal/service"
 	"encoding/json"
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
@@ -11,10 +12,11 @@ import (
 
 type CatHandler struct {
 	src service.Service
+	validate *validator.Validate
 }
 
 func NewCatHandler(srv service.Service) *CatHandler {
-	return &CatHandler{src: srv}
+	return &CatHandler{src: srv, validate: validator.New()}
 }
 
 // @Summary GetAllCats
@@ -46,10 +48,7 @@ func (h *CatHandler) CreateCats(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
-	if cats.Name == "" {
-		return c.JSON(http.StatusBadRequest, new(models.Cats))
-	}
-	if cats.ID == 0 {
+	if err = h.validate.Struct(cats); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 
@@ -73,7 +72,8 @@ func (h *CatHandler) CreateCats(c echo.Context) error {
 func (h *CatHandler) GetCat(c echo.Context) error {
 	// Достаём ID
 	id := c.Param("id")
-	if id == "" {
+
+	if err := h.validate.Var(id, "required"); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 
@@ -98,26 +98,25 @@ func (h *CatHandler) GetCat(c echo.Context) error {
 func (h *CatHandler) UpdateCat(c echo.Context) error {
 	cats := new(models.Cats)
 
-	// Достаём ID
-	id := c.Param("id")
-	// Проверка что id передан
-	if id == "" {
+	err := json.NewDecoder(c.Request().Body).Decode(&cats)
+	if err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
-	// Проверка что id можно перевезти в int
+
+	// Достаём ID
+	id := c.Param("id")
+
+	// Конвертируем id в int
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
+
 	// Присваиваем id модели
 	cats.ID = int32(idInt)
 
-	err = json.NewDecoder(c.Request().Body).Decode(&cats)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, new(models.Cats))
-	}
-	// Проверка что name передан
-	if cats.Name == "" {
+	// Проверка валидности модели
+	if err = h.validate.Struct(cats); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 
@@ -141,13 +140,8 @@ func (h *CatHandler) UpdateCat(c echo.Context) error {
 func (h *CatHandler) DeleteCat(c echo.Context) error {
 	// Достаём ID
 	id := c.Param("id")
-	// Проверка что id передан
-	if id == "" {
-		return c.JSON(http.StatusBadRequest, new(models.Cats))
-	}
-	// Проверка что id можно перевезти в int
-	_, err := strconv.Atoi(id)
-	if err != nil {
+
+	if err := h.validate.Var(id, "required,numeric,gt=0"); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 
