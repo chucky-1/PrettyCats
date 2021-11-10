@@ -4,7 +4,6 @@ import (
 	"CatsCrud/internal/models"
 	"CatsCrud/internal/service"
 	"encoding/json"
-	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
@@ -12,11 +11,14 @@ import (
 
 type CatHandler struct {
 	src service.Service
-	validate *validator.Validate
 }
 
 func NewCatHandler(srv service.Service) *CatHandler {
-	return &CatHandler{src: srv, validate: validator.New()}
+	return &CatHandler{src: srv}
+}
+
+type partOfCats struct {
+	ID   int32  `json:"id" bson:"id" validate:"required,numeric,gt=0"`
 }
 
 // @Summary GetAllCats
@@ -48,7 +50,7 @@ func (h *CatHandler) CreateCats(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
-	if err = h.validate.Struct(cats); err != nil {
+	if err = c.Validate(cats); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 
@@ -70,10 +72,18 @@ func (h *CatHandler) CreateCats(c echo.Context) error {
 // @Failure 500 {string} string
 // @Router /cats/{id} [get]
 func (h *CatHandler) GetCat(c echo.Context) error {
+	var catModel partOfCats
+
 	// Достаём ID
 	id := c.Param("id")
 
-	if err := h.validate.Var(id, "required"); err != nil {
+	// Валидируем
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, new(models.Cats))
+	}
+	catModel.ID = int32(idInt)
+	if err = c.Validate(catModel); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 
@@ -116,7 +126,7 @@ func (h *CatHandler) UpdateCat(c echo.Context) error {
 	cats.ID = int32(idInt)
 
 	// Проверка валидности модели
-	if err = h.validate.Struct(cats); err != nil {
+	if err = c.Validate(cats); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 
@@ -138,10 +148,18 @@ func (h *CatHandler) UpdateCat(c echo.Context) error {
 // @Failure 500 {string} string
 // @Router /cats/{id} [delete]
 func (h *CatHandler) DeleteCat(c echo.Context) error {
+	var catModel partOfCats
+
 	// Достаём ID
 	id := c.Param("id")
 
-	if err := h.validate.Var(id, "required,numeric,gt=0"); err != nil {
+	// Валидируем
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, new(models.Cats))
+	}
+	catModel.ID = int32(idInt)
+	if err := c.Validate(catModel); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 

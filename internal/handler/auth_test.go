@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"CatsCrud/internal/models"
 	"CatsCrud/internal/service"
 	"CatsCrud/internal/service/mock"
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -22,7 +24,7 @@ func TestUserAuthHandler_SignUp(t *testing.T) {
 	}{
 		{
 			name: "OK",
-			inputJson: `{"name":"Jon Snow","username":"Jonny","password":"Jon12@15d"}`,
+			inputJson: `{"name":"Jon Snow","username":"Jonny","password":"Jon1215d"}`,
 			exceptBody: "1",
 			exceptStatusCode: 200,
 		},
@@ -49,6 +51,7 @@ func TestUserAuthHandler_SignUp(t *testing.T) {
 	for _, TestCase := range TestTable {
 		t.Run(TestCase.name, func(t *testing.T) {
 			e := echo.New()
+			e.Validator = &models.CustomValidator{Validator: validator.New()}
 			req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(TestCase.inputJson))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
@@ -92,6 +95,7 @@ func TestUserAuthHandler_SignIn(t *testing.T) {
 	for _, TestCase := range TestTable {
 		t.Run(TestCase.name, func(t *testing.T) {
 			e := echo.New()
+			e.Validator = &models.CustomValidator{Validator: validator.New()}
 			req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(TestCase.inputJson))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()

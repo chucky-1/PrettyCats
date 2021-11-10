@@ -34,8 +34,7 @@ func (h *UserAuthHandler) SignUp(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, new(models.User))
 	}
 
-	// Проверка, что все поля заполнены
-	if user.Username == "" || user.Name == "" || user.Password == "" {
+	if err = c.Validate(user); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.User))
 	}
 
@@ -48,8 +47,8 @@ func (h *UserAuthHandler) SignUp(c echo.Context) error {
 }
 
 type SignInInput struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string `json:"username" validate:"required,min=3"`
+	Password string `json:"password" validate:"required,min=6"`
 }
 
 // @Summary SignIn
@@ -70,8 +69,7 @@ func (h *UserAuthHandler) SignIn(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, new(models.User))
 	}
 
-	// Проверка, что все поля заполнены
-	if input.Username == "" || input.Password == "" {
+	if err = c.Validate(input); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.User))
 	}
 
