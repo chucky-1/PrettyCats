@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"CatsCrud/internal/models"
+	"CatsCrud/internal/request"
 	"CatsCrud/internal/service"
 	"CatsCrud/internal/service/mock"
 	"github.com/go-playground/validator/v10"
@@ -51,7 +51,7 @@ func TestUserAuthHandler_SignUp(t *testing.T) {
 	for _, TestCase := range TestTable {
 		t.Run(TestCase.name, func(t *testing.T) {
 			e := echo.New()
-			e.Validator = &models.CustomValidator{Validator: validator.New()}
+			e.Validator = &request.CustomValidator{Validator: validator.New()}
 			req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(TestCase.inputJson))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
@@ -95,7 +95,7 @@ func TestUserAuthHandler_SignIn(t *testing.T) {
 	for _, TestCase := range TestTable {
 		t.Run(TestCase.name, func(t *testing.T) {
 			e := echo.New()
-			e.Validator = &models.CustomValidator{Validator: validator.New()}
+			e.Validator = &request.CustomValidator{Validator: validator.New()}
 			req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(TestCase.inputJson))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()

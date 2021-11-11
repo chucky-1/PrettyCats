@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"CatsCrud/internal/models"
+	"CatsCrud/internal/request"
 	"CatsCrud/internal/service/mock"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
@@ -19,9 +19,8 @@ func TestCatHandler_GetAllCats(t *testing.T) {
 	inputJSON := `{}`
 	catsJSON := `[{"id":0,"name":""}]`
 	e := echo.New()
-	e.Validator = &models.CustomValidator{Validator: validator.New()}
+	e.Validator = &request.CustomValidator{Validator: validator.New()}
 	req := httptest.NewRequest(http.MethodGet, "/cats", strings.NewReader(inputJSON))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	srv := mock.NewMockCatServ()
@@ -76,7 +75,7 @@ func TestCatHandler_CreateCats(t *testing.T) {
 	for _, TestCase := range TestTable {
 		t.Run(TestCase.name, func(t *testing.T) {
 			e := echo.New()
-			e.Validator = &models.CustomValidator{Validator: validator.New()}
+			e.Validator = &request.CustomValidator{Validator: validator.New()}
 			req := httptest.NewRequest(http.MethodPost, "/cats", strings.NewReader(TestCase.inputJson))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
@@ -119,7 +118,7 @@ func TestCatHandler_GetCat(t *testing.T) {
 	for _, TestCase := range TestTable {
 		t.Run(TestCase.name, func(t *testing.T) {
 			e := echo.New()
-			e.Validator = &models.CustomValidator{Validator: validator.New()}
+			e.Validator = &request.CustomValidator{Validator: validator.New()}
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
@@ -191,8 +190,9 @@ func TestCatHandler_UpdateCat(t *testing.T) {
 	for _, TestCase := range TestTable {
 		t.Run(TestCase.name, func(t *testing.T) {
 			e := echo.New()
-			e.Validator = &models.CustomValidator{Validator: validator.New()}
+			e.Validator = &request.CustomValidator{Validator: validator.New()}
 			req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(TestCase.inputJson))
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 			c.SetPath("/cats/:id")
@@ -243,7 +243,7 @@ func TestCatHandler_DeleteCat(t *testing.T) {
 	for _, TestCase := range TestTable {
 		t.Run(TestCase.name, func(t *testing.T) {
 			e := echo.New()
-			e.Validator = &models.CustomValidator{Validator: validator.New()}
+			e.Validator = &request.CustomValidator{Validator: validator.New()}
 			req := httptest.NewRequest(http.MethodPut, "/", nil)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)

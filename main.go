@@ -2,8 +2,8 @@ package main
 
 import (
 	"CatsCrud/internal/handler"
-	"CatsCrud/internal/models"
 	repository2 "CatsCrud/internal/repository"
+	"CatsCrud/internal/request"
 	"CatsCrud/internal/service"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
@@ -30,7 +30,7 @@ const flag = 1
 // @name Authorization
 func main() {
 	e := echo.New()
-	e.Validator = &models.CustomValidator{Validator: validator.New()}
+	e.Validator = &request.CustomValidator{Validator: validator.New()}
 
 	// Middleware
 	e.Use(middleware.Logger())

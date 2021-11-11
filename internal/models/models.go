@@ -1,30 +1,13 @@
 package models
 
-import (
-	"github.com/go-playground/validator/v10"
-	"github.com/labstack/echo/v4"
-	"net/http"
-)
-
 type Cats struct {
-	ID   int32  `json:"id" bson:"id" validate:"required,numeric,gt=0"`
-	Name string `json:"name" bson:"name" validate:"required,min=3"`
+	ID   int32  `param:"id" json:"id" bson:"id" query:"id" header:"id" form:"id" xml:"id" validate:"required,numeric,gt=0"`
+	Name string `param:"name" json:"name" bson:"name" query:"name" header:"name" form:"name" xml:"name" validate:"required,min=3"`
 }
 
 type User struct {
-	ID 		 int `json:"id"`
-	Name 	 string `json:"name" validate:"required,min=3"`
-	Username string `json:"username" validate:"required,min=3"`
-	Password string `json:"password" validate:"required,min=6"`
-}
-
-type CustomValidator struct {
-	Validator *validator.Validate
-}
-
-func (c *CustomValidator) Validate(i interface{}) error {
-	if err := c.Validator.Struct(i); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-	return nil
+	ID 		 int `json:"id" param:"id" query:"id"`
+	Name 	 string `json:"name" param:"name" query:"name" validate:"required,min=3"`
+	Username string `json:"username" param:"username" query:"username" validate:"required,min=3"`
+	Password string `json:"password" param:"password" query:"password" validate:"required,min=6"`
 }

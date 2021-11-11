@@ -2,8 +2,8 @@ package handler
 
 import (
 	"CatsCrud/internal/models"
+	"CatsCrud/internal/request"
 	"CatsCrud/internal/service"
-	"encoding/json"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
@@ -15,10 +15,6 @@ type CatHandler struct {
 
 func NewCatHandler(srv service.Service) *CatHandler {
 	return &CatHandler{src: srv}
-}
-
-type partOfCats struct {
-	ID   int32  `json:"id" bson:"id" validate:"required,numeric,gt=0"`
 }
 
 // @Summary GetAllCats
@@ -46,11 +42,10 @@ func(h *CatHandler) GetAllCats(c echo.Context) error {
 // @Router /cats [post]
 func (h *CatHandler) CreateCats(c echo.Context) error {
 	cats := new(models.Cats)
-	err := json.NewDecoder(c.Request().Body).Decode(cats)
-	if err != nil {
+	if err := c.Bind(cats); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
-	if err = c.Validate(cats); err != nil {
+	if err := c.Validate(cats); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 
@@ -72,22 +67,15 @@ func (h *CatHandler) CreateCats(c echo.Context) error {
 // @Failure 500 {string} string
 // @Router /cats/{id} [get]
 func (h *CatHandler) GetCat(c echo.Context) error {
-	var catModel partOfCats
-
-	// Достаём ID
-	id := c.Param("id")
-
-	// Валидируем
-	idInt, err := strconv.Atoi(id)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, new(models.Cats))
+	id := new(request.RequestCatId)
+	if err := c.Bind(id); err != nil {
+		return err
 	}
-	catModel.ID = int32(idInt)
-	if err = c.Validate(catModel); err != nil {
+	if err := c.Validate(id); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 
-	cat, err := h.src.GetCatServ(id)
+	cat, err := h.src.GetCatServ(strconv.Itoa(int(id.ID)))
 	if err != nil {
 		return err
 	}
@@ -107,30 +95,14 @@ func (h *CatHandler) GetCat(c echo.Context) error {
 // @Router /cats/{id} [put]
 func (h *CatHandler) UpdateCat(c echo.Context) error {
 	cats := new(models.Cats)
-
-	err := json.NewDecoder(c.Request().Body).Decode(&cats)
-	if err != nil {
+	if err := c.Bind(cats); err != err {
+		return c.JSON(http.StatusBadRequest, new(models.Cats))
+	}
+	if err := c.Validate(cats); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 
-	// Достаём ID
-	id := c.Param("id")
-
-	// Конвертируем id в int
-	idInt, err := strconv.Atoi(id)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, new(models.Cats))
-	}
-
-	// Присваиваем id модели
-	cats.ID = int32(idInt)
-
-	// Проверка валидности модели
-	if err = c.Validate(cats); err != nil {
-		return c.JSON(http.StatusBadRequest, new(models.Cats))
-	}
-
-	cat, err := h.src.UpdateCatServ(id, *cats)
+	cat, err := h.src.UpdateCatServ(strconv.Itoa(int(cats.ID)), *cats)
 	if err != nil {
 		return err
 	}
@@ -148,22 +120,15 @@ func (h *CatHandler) UpdateCat(c echo.Context) error {
 // @Failure 500 {string} string
 // @Router /cats/{id} [delete]
 func (h *CatHandler) DeleteCat(c echo.Context) error {
-	var catModel partOfCats
-
-	// Достаём ID
-	id := c.Param("id")
-
-	// Валидируем
-	idInt, err := strconv.Atoi(id)
-	if err != nil {
+	id := new(request.RequestCatId)
+	if err := c.Bind(id); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
-	catModel.ID = int32(idInt)
-	if err := c.Validate(catModel); err != nil {
+	if err := c.Validate(id); err != nil {
 		return c.JSON(http.StatusBadRequest, new(models.Cats))
 	}
 
-	cat, err := h.src.DeleteCatServ(id)
+	cat, err := h.src.DeleteCatServ(strconv.Itoa(int(id.ID)))
 	if err != nil {
 		return err
 	}
