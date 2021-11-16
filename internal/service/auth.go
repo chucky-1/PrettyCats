@@ -4,11 +4,11 @@ import (
 	"CatsCrud/internal/models"
 	"CatsCrud/internal/repository"
 	"crypto/sha1"
-	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt"
 	"github.com/spf13/viper"
 	"time"
+	log "github.com/sirupsen/logrus"
 )
 
 type UserAuthService struct {
@@ -38,7 +38,7 @@ func (s *UserAuthService) CreateUserServ(user models.User) (int, error) {
 func (s *UserAuthService) GenerateToken(username string, password string) (t string, err error) {
 	user, err := s.repository.GetUser(username, generatePassword(password))
 	if err != nil {
-		return "", errors.New("error in repository")
+		log.Fatal("error in repository")
 	}
 
 	claims := &JwtCustomClaims{
@@ -54,7 +54,7 @@ func (s *UserAuthService) GenerateToken(username string, password string) (t str
 	// Generate encoded token and send it as response.
 	t, err = token.SignedString([]byte(viper.GetString("KEY_FOR_SIGNATURE_JWT")))
 	if err != nil {
-		return "", errors.New("error during generate token")
+		log.Fatal("error during generate token")
 	}
 
 	return t, nil

@@ -3,14 +3,13 @@ package repository
 import (
 	"CatsCrud/internal/models"
 	"context"
-	"errors"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"strconv"
+	log "github.com/sirupsen/logrus"
 )
 
 type PostgresRepository struct {
@@ -70,10 +69,10 @@ func (c *PostgresRepository) CreateCats(cats models.Cats) (*models.Cats, error) 
 	// Добавляем в базу данных
 	commandTag, err := c.conn.Exec(context.Background(), "INSERT INTO cats VALUES ($1, $2)", cats.ID, cats.Name)
 	if err != nil {
-		return &cats, err
+		log.Fatal(err)
 	}
 	if commandTag.RowsAffected() != 1 {
-		return &cats, errors.New("Failed to create cat")
+		log.Fatal("Failed to create cat")
 	}
 
 	return &cats, nil
@@ -85,14 +84,14 @@ func (c *PostgresRepository) GetCat(id string) (*models.Cats, error) {
 
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		return &cat, nil
+		log.Fatal(err)
 	}
 
 	// Достаём name
 	var name string
 	err = c.conn.QueryRow(context.Background(), "select name from cats where id=$1", id).Scan(&name)
 	if err != nil {
-		return &cat, err
+		log.Fatal(err)
 	}
 
 	//Присваиваем параметры models.Cats
@@ -107,7 +106,7 @@ func (c *PostgresRepository) UpdateCat(id string, cats models.Cats) (*models.Cat
 	// Преобразуем id в int
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		return &cats, err
+		log.Fatal(err)
 	}
 
 	// Обновляем models.Cat
@@ -116,10 +115,10 @@ func (c *PostgresRepository) UpdateCat(id string, cats models.Cats) (*models.Cat
 	// Вносим изменения в базу данных
 	commandTag, err := c.conn.Exec(context.Background(), "UPDATE cats SET name = $1 WHERE id = $2", cats.Name, cats.ID)
 	if err != nil {
-		return &cats, err
+		log.Fatal(err)
 	}
 	if commandTag.RowsAffected() != 1 {
-		return &cats, errors.New("Row isn't update")
+		log.Fatal("Row isn't update")
 	}
 
 	return &cats, nil
@@ -132,7 +131,7 @@ func (c *PostgresRepository) DeleteCat(id string) (*models.Cats, error) {
 	// Преобразуем id в int
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		return &cat, err
+		log.Fatal(err)
 	}
 
 	// Обновляем models.Cats
@@ -141,17 +140,17 @@ func (c *PostgresRepository) DeleteCat(id string) (*models.Cats, error) {
 	var name string
 	err = c.conn.QueryRow(context.Background(), "select name from cats where id=$1", id).Scan(&name)
 	if err != nil {
-		return &cat, err
+		log.Fatal(err)
 	}
 	cat.Name = name
 
 	// Удаление из базы
 	commandTag, err := c.conn.Exec(context.Background(), "delete from cats where id=$1", id)
 	if err != nil {
-		return &cat, err
+		log.Fatal(err)
 	}
 	if commandTag.RowsAffected() != 1 {
-		return &cat, errors.New("No row found to delete")
+		log.Fatal("No row found to delete")
 	}
 
 	return &cat, nil
@@ -163,11 +162,13 @@ func (c *MongoRepository) GetAllCats() ([]*models.Cats, error) {
 
 	collection := c.client.Database(viper.GetString("mongodb.dbase")).Collection(viper.GetString("mongodb.collection"))
 	cur, currErr := collection.Find(context.TODO(), bson.D{})
-	if currErr != nil { panic(currErr) }
+	if currErr != nil {
+		log.Fatal(currErr)
+	}
 	defer cur.Close(context.TODO())
 
 	if err := cur.All(context.TODO(), &allcats); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	return allcats, nil
 }
@@ -192,14 +193,14 @@ func (c *MongoRepository) GetCat(id string) (*models.Cats, error) {
 
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		return &cat, nil
+		log.Fatal(err)
 	}
 
 	collection := c.client.Database(viper.GetString("mongodb.dbase")).Collection(viper.GetString("mongodb.collection"))
 
 	err = collection.FindOne(context.TODO(), bson.D{primitive.E{Key: "id", Value: idInt}}).Decode(&cat)
 	if err != nil {
-		return &cat, err
+		log.Fatal(err)
 	}
 	return &cat, nil
 }
@@ -208,7 +209,7 @@ func (c *MongoRepository) UpdateCat(id string, cats models.Cats) (*models.Cats, 
 	// Преобразуем id в int
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		return &cats, err
+		log.Fatal(err)
 	}
 
 	// Обновляем models.Cat
@@ -231,7 +232,7 @@ func (c *MongoRepository) DeleteCat(id string) (*models.Cats, error) {
 	// Преобразуем id в int
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		return &cat, err
+		log.Fatal(err)
 	}
 
 	// Обновляес models.Cats

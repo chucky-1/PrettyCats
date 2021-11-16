@@ -12,11 +12,11 @@ import (
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
-	"log"
 	"os"
 	"os/exec"
 	"testing"
 	"time"
+	log "github.com/sirupsen/logrus"
 )
 
 var db *pgxpool.Pool
@@ -60,7 +60,7 @@ func TestMain(m *testing.M) {
 	if err = pool.Retry(func() error {
 		db, err = pgxpool.Connect(context.Background(), databaseUrl)
 		if err != nil {
-			return err
+			log.Fatal(err)
 		}
 		return nil
 	}); err != nil {

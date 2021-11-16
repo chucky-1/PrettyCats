@@ -6,10 +6,10 @@ import (
 	"CatsCrud/internal/service"
 	"CatsCrud/protocol"
 	"context"
-	"github.com/labstack/gommon/log"
 	"google.golang.org/grpc"
 	"net"
 	"strconv"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

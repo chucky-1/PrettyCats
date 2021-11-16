@@ -5,11 +5,11 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/labstack/gommon/log"
 	"google.golang.org/grpc"
 	"os"
 	"strconv"
 	"time"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -41,7 +41,7 @@ func main()  {
 		case string(input[:len(input)-2]) == "1":
 			r, err := client.GetAll(ctx, &myGrpc.Request{})
 			if err != nil {
-				log.Fatal(err, r)
+				log.Fatal(err)
 			}
 			fmt.Print("All cats: ", r.Cats, "\n")
 		case string(input[:len(input)-2]) == "2":
