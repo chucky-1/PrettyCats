@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option go_package = "CatsCrud/grpc/proto/myGrpc";
+
+package myGrpc;
+
+service CatsCrud {
+  rpc GetAll (Request) returns (AllCats) {}
+  rpc Create (RequestCats) returns (Cats) {}
+  rpc Get (Id) returns (Cats) {}
+  rpc Update (RequestCats) returns (Cats) {}
+  rpc Delete (Id) returns (Cats) {}
+}
+
+message Request {}
+
+message RequestCats {
+  string name = 1;
+  int32 id = 2;
+}
+
+message Id {
+  string id = 1;
+}
+
+message Cats {
+  string name = 1;
+  int32 id = 2;
+}
+
+message AllCats {
+  repeated Cats cats = 1;
+}
+
+

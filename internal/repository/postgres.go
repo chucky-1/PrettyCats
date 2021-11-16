@@ -16,7 +16,10 @@ func RequestDB() *pgxpool.Pool {
 	}
 
 	if err := godotenv.Load(); err != nil {
-		log.Fatal("error loading env variables")
+		err = godotenv.Load("C:/Users/User/GolandProjects/CatsCrud/.env")
+		if err != nil {
+			log.Fatal("error loading env variables")
+		}
 	}
 
 	url := fmt.Sprintf("%s://%s:%s@%s:%s/%s",
