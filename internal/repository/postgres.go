@@ -34,7 +34,6 @@ func RequestDB() (*pgxpool.Pool, error) {
 
 	conn, err := pgxpool.Connect(context.Background(), url)
 	if err != nil {
-		log.Error(os.Stderr)
 		log.Errorf("Unable to connect to database: %v\n", err)
 		return nil, fmt.Errorf("we can't connect to database")
 	}

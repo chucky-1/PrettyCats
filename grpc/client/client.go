@@ -74,6 +74,10 @@ func main() {
 			cat.Name = string(name[:len(name)-2])
 
 			r, err := client.Create(ctx, cat)
+			if err != nil {
+				log.Error(err)
+				return
+			}
 			fmt.Println("New cat added: ", r)
 		case string(input[:len(input)-2]) == "3":
 			fmt.Println("Getting cat...")
@@ -88,6 +92,10 @@ func main() {
 			idStruct.Id = string(id[:len(id)-2])
 
 			r, err := client.Get(ctx, idStruct)
+			if err != nil {
+				log.Error(err)
+				return
+			}
 			fmt.Println("Gotten cat is", r.Id, r.Name)
 		case string(input[:len(input)-2]) == "4":
 			fmt.Println("Updating cat...")
@@ -114,6 +122,10 @@ func main() {
 			cat.Name = string(name[:len(name)-2])
 
 			r, err := client.Update(ctx, cat)
+			if err != nil {
+				log.Error(err)
+				return
+			}
 			fmt.Println("Updated cat is", r.Id, r.Name)
 		case string(input[:len(input)-2]) == "5":
 			fmt.Println("Delete cat...")
@@ -127,6 +139,10 @@ func main() {
 			idStruct.Id = string(id[:len(id)-2])
 
 			r, err := client.Delete(ctx, idStruct)
+			if err != nil {
+				log.Error(err)
+				return
+			}
 			fmt.Println("Deleted cat is", r.Id, r.Name)
 		}
 	}

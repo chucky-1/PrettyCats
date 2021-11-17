@@ -7,7 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"os"
 )
 
 func RequestMongo(ctx context.Context) (*mongo.Client, error) {
@@ -30,10 +29,10 @@ func RequestMongo(ctx context.Context) (*mongo.Client, error) {
 	//
 	//fmt.Println(url)
 
-	url := os.Getenv("MONGODB_CONNSTRING")
+	//url := os.Getenv("MONGODB_CONNSTRING")
 
 	// Для локальной разработке, закоментить при билдинге
-	url = "mongodb://root:example@localhost:27017/"
+	url := "mongodb://root:example@localhost:27017/"
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(url))
 	if err != nil {

@@ -56,8 +56,7 @@ func TestUserAuthHandler_SignUp(t *testing.T) {
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			var srv service.Auth
-			srv = mock.NewMockCatServ()
+			var srv service.Auth = mock.NewMockCatServ()
 			userHandler = NewUserAuthHandler(srv)
 
 			if assert.NoError(t, userHandler.SignUp(c)) {
@@ -100,8 +99,7 @@ func TestUserAuthHandler_SignIn(t *testing.T) {
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			var srv service.Auth
-			srv = mock.NewMockCatServ()
+			var srv service.Auth = mock.NewMockCatServ()
 			userHandler = NewUserAuthHandler(srv)
 
 			if assert.NoError(t, userHandler.SignIn(c)) {
