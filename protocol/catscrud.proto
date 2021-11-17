@@ -6,18 +6,17 @@ package myGrpc;
 
 service CatsCrud {
   rpc GetAll (Request) returns (AllCats) {}
-  rpc Create (RequestCats) returns (Cats) {}
-  rpc Get (Id) returns (Cats) {}
-  rpc Update (RequestCats) returns (Cats) {}
-  rpc Delete (Id) returns (Cats) {}
+  rpc Create (RequestCat) returns (Cat) {}
+  rpc Get (Id) returns (Cat) {}
+  rpc Update (RequestCat) returns (Cat) {}
+  rpc Delete (Id) returns (Cat) {}
   rpc SignUp (RequestRegister) returns (UserId)
   rpc SignIn (RequestEnter) returns (Token)
-
 }
 
 message Request {}
 
-message RequestCats {
+message RequestCat {
   string name = 1;
   int32 id = 2;
 }
@@ -26,7 +25,7 @@ message Id {
   string id = 1;
 }
 
-message Cats {
+message Cat {
   string name = 1;
   int32 id = 2;
 }
