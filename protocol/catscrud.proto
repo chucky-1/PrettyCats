@@ -10,6 +10,9 @@ service CatsCrud {
   rpc Get (Id) returns (Cats) {}
   rpc Update (RequestCats) returns (Cats) {}
   rpc Delete (Id) returns (Cats) {}
+  rpc SignUp (RequestRegister) returns (UserId)
+  rpc SignIn (RequestEnter) returns (Token)
+
 }
 
 message Request {}
@@ -32,4 +35,16 @@ message AllCats {
   repeated Cats cats = 1;
 }
 
+message RequestRegister {
+  string name = 1;
+  string username = 2;
+  string password = 3;
+}
 
+message UserId {
+  int32 id
+}
+
+message Token {
+  string token = 1;
+}

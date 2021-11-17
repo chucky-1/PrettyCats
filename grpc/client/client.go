@@ -5,23 +5,24 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"os"
 	"strconv"
 	"time"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
 	adress = "localhost:10000"
 )
 
-var description string = "Input\n1 - get all cats\n2 - create cats\n3 - get cat\n4 - update cat\n5 - delete cat\nexit - to exit"
+var description = "Input\n1 - get all cats\n2 - create cats\n3 - get cat\n4 - update cat\n5 - delete cat\nexit - to exit"
 
-func main()  {
+func main() {
 	conn, err := grpc.Dial(adress, grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("fail to dial: %v", err)
+		log.Errorf("fail to dial: %v", err)
+		return
 	}
 	defer conn.Close()
 	client := myGrpc.NewCatsCrudClient(conn)
@@ -35,13 +36,15 @@ func main()  {
 	for string(input[:len(input)-2]) != "exit" {
 		input, err = bufio.NewReader(os.Stdin).ReadBytes('\n')
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
+			return
 		}
 		switch {
 		case string(input[:len(input)-2]) == "1":
 			r, err := client.GetAll(ctx, &myGrpc.Request{})
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err)
+				return
 			}
 			fmt.Print("All cats: ", r.Cats, "\n")
 		case string(input[:len(input)-2]) == "2":
@@ -49,18 +52,21 @@ func main()  {
 			fmt.Print("Input name: ")
 			name, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err)
+				return
 			}
 
 			fmt.Print("Input ID: ")
 			id, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err)
+				return
 			}
 
 			idInt, err := strconv.Atoi(string(id[:len(id)-2]))
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err)
+				return
 			}
 
 			cat := new(myGrpc.RequestCats)
@@ -74,7 +80,8 @@ func main()  {
 			fmt.Print("Input id: ")
 			id, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err)
+				return
 			}
 
 			idStruct := new(myGrpc.Id)
@@ -87,16 +94,19 @@ func main()  {
 			fmt.Print("Input id: ")
 			id, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err)
+				return
 			}
 			idInt, err := strconv.Atoi(string(id[:len(id)-2]))
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err)
+				return
 			}
 			fmt.Print("Input name: ")
 			name, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err)
+				return
 			}
 
 			cat := new(myGrpc.RequestCats)
@@ -110,7 +120,8 @@ func main()  {
 			fmt.Print("Input id: ")
 			id, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err)
+				return
 			}
 			idStruct := new(myGrpc.Id)
 			idStruct.Id = string(id[:len(id)-2])

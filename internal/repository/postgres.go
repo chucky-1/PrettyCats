@@ -10,15 +10,17 @@ import (
 	"os"
 )
 
-func RequestDB() *pgxpool.Pool {
+func RequestDB() (*pgxpool.Pool, error) {
 	if err := initConfig(); err != nil {
-		log.Fatal("error config files")
+		log.Error("error config files")
+		return nil, fmt.Errorf("we can't connect to database")
 	}
 
 	if err := godotenv.Load(); err != nil {
 		err = godotenv.Load("C:/Users/User/GolandProjects/CatsCrud/.env")
 		if err != nil {
-			log.Fatal("error loading env variables")
+			log.Error("error loading env variables")
+			return nil, fmt.Errorf("we can't connect to database")
 		}
 	}
 
@@ -32,8 +34,9 @@ func RequestDB() *pgxpool.Pool {
 
 	conn, err := pgxpool.Connect(context.Background(), url)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		os.Exit(1)
+		log.Error(os.Stderr)
+		log.Errorf("Unable to connect to database: %v\n", err)
+		return nil, fmt.Errorf("we can't connect to database")
 	}
-	return conn
+	return conn, nil
 }

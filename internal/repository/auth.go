@@ -3,9 +3,10 @@ package repository
 import (
 	"CatsCrud/internal/models"
 	"context"
+	"errors"
+	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	log "github.com/sirupsen/logrus"
 )
 
 type Auth interface {
@@ -20,7 +21,8 @@ func (c *PostgresRepository) CreateUser(user models.User) (int, error) {
 		"VALUES (nextval('users_sequence'), $1, $2, $3) RETURNING ID",
 		user.Name, user.Username, user.Password).Scan(&id)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return 0, err
 	}
 
 	return id, nil
@@ -33,11 +35,12 @@ func (c *PostgresRepository) GetUser (username, password string) (models.User, e
 		"FROM users WHERE username = $1", username).Scan(&user.ID, &user.Name, &user.Username, &user.Password)
 
 	if err != nil {
-		log.Fatal("error at working with database")
+		log.Error("error at working with database")
+		return models.User{}, err
 	}
 
 	if user.Password != password {
-		log.Fatal("password isn't corrected")
+		return models.User{}, errors.New("password isn't corrected")
 	}
 
 	return user, nil
@@ -54,7 +57,8 @@ func (c *MongoRepository) CreateUser(user models.User) (int, error) {
 
 	_, insertErr := collection.InsertMany(context.TODO(), docs)
 	if insertErr != nil {
-		log.Fatal(insertErr)
+		log.Error(insertErr)
+		return 0, insertErr
 	}
 
 	id := 1

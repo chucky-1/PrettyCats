@@ -2,15 +2,18 @@ package main
 
 import (
 	"CatsCrud/internal/handler"
-	repository2 "CatsCrud/internal/repository"
+	rep "CatsCrud/internal/repository"
 	"CatsCrud/internal/request"
 	"CatsCrud/internal/service"
+	"context"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/viper"
 	"github.com/swaggo/echo-swagger"
+	"log"
 	"net/http"
+	"time"
 
 	_ "CatsCrud/docs"
 )
@@ -40,22 +43,29 @@ func main() {
 		return c.String(http.StatusOK, "Hello, Cats!")
 	})
 
-	var rps repository2.Repository
-	var rpsAuth repository2.Auth
+	var rps rep.Repository
+	var rpsAuth rep.Auth
 	if flag == 1 {
 		// Соединение с postgres
-		conn := repository2.RequestDB()
+		conn, err := rep.RequestDB()
+		if err != nil {
+			log.Fatal(err)
+		}
 		defer conn.Close()
 
-		rps = repository2.NewPostgresRepository(conn)
-		rpsAuth = repository2.NewPostgresRepository(conn)
+		rps = rep.NewPostgresRepository(conn)
+		rpsAuth = rep.NewPostgresRepository(conn)
 	} else if flag == 2 {
 		//Соединение с mongo
-		client, cancel := repository2.RequestMongo()
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		client, err := rep.RequestMongo(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
 		defer cancel()
 
-		rps = repository2.NewMongoRepository(client)
-		rpsAuth = repository2.NewMongoRepository(client)
+		rps = rep.NewMongoRepository(client)
+		rpsAuth = rep.NewMongoRepository(client)
 	}
 
 	var srv service.Service

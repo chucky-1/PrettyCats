@@ -11,12 +11,12 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"os/exec"
 	"testing"
 	"time"
-	log "github.com/sirupsen/logrus"
 )
 
 var db *pgxpool.Pool
@@ -26,7 +26,8 @@ func TestMain(m *testing.M) {
 	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
 	pool, err := dockertest.NewPool("")
 	if err != nil {
-		log.Fatalf("Could not connect to docker: %s", err)
+		log.Errorf("Could not connect to docker: %s", err)
+		return
 	}
 
 	// pulls an image, creates a container based on it and runs it
@@ -45,7 +46,7 @@ func TestMain(m *testing.M) {
 		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
 	})
 	if err != nil {
-		log.Fatalf("Could not start resource: %s", err)
+		log.Errorf("Could not start resource: %s", err)
 	}
 
 	hostAndPort = resource.GetHostPort("5432/tcp")
@@ -64,7 +65,8 @@ func TestMain(m *testing.M) {
 		}
 		return nil
 	}); err != nil {
-		log.Fatalf("Could not connect to docker: %s", err)
+		log.Errorf("Could not connect to docker: %s", err)
+		return
 	}
 
 	//Run tests
@@ -72,7 +74,8 @@ func TestMain(m *testing.M) {
 
 	// You can't defer this because os.Exit doesn't care for defer
 	if err := pool.Purge(resource); err != nil {
-		log.Fatalf("Could not purge resource: %s", err)
+		log.Errorf("Could not purge resource: %s", err)
+		return
 	}
 
 	os.Exit(code)
@@ -85,7 +88,8 @@ func MyMigrate() {
 	cmd.Dir = "C:/Program Files/flyway-8.0.3"
 	err := cmd.Run()
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return
 	}
 }
 
@@ -141,7 +145,8 @@ func TestPostgresRepository_CreateCats(t *testing.T) {
 	// Проверка добавления в базу
 	allcats, err := rps.GetAllCats()
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return
 	}
 	count := len(allcats)
 	assert.Equal(t, count, countOfCats + 1)
@@ -181,7 +186,8 @@ func TestPostgresRepository_UpdateCat(t *testing.T) {
 	// Проверка внесения изменений в базу
 	cat, err = rps.GetCat(id)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return
 	}
 	assert.Equal(t, cat, &catTrue)
 }
@@ -234,7 +240,8 @@ func TestPostgresRepository_CreateUser(t *testing.T) {
 				"FROM users WHERE username = $1", TestCase.user.Username).Scan(
 					&newUser.ID, &newUser.Name, &newUser.Username, &newUser.Password)
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err)
+				return
 			}
 
 			assert.Equal(t, TestCase.user, newUser, "User didn't corrected to save")

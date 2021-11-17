@@ -3,13 +3,14 @@ package repository
 import (
 	"CatsCrud/internal/models"
 	"context"
+	"fmt"
 	"github.com/jackc/pgx/v4/pgxpool"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"strconv"
-	log "github.com/sirupsen/logrus"
 )
 
 type PostgresRepository struct {
@@ -42,7 +43,8 @@ func (c *PostgresRepository) GetAllCats() ([]*models.Cats, error) {
 
 	rows, err := c.conn.Query(context.Background(), "select ID, name from cats")
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	for rows.Next() {
@@ -54,7 +56,8 @@ func (c *PostgresRepository) GetAllCats() ([]*models.Cats, error) {
 
 		values, err := rows.Values()
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
+			return nil, err
 		}
 		cats.ID = values[0].(int32)
 		cats.Name = values[1].(string)
@@ -69,10 +72,12 @@ func (c *PostgresRepository) CreateCats(cats models.Cats) (*models.Cats, error) 
 	// Добавляем в базу данных
 	commandTag, err := c.conn.Exec(context.Background(), "INSERT INTO cats VALUES ($1, $2)", cats.ID, cats.Name)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 	if commandTag.RowsAffected() != 1 {
-		log.Fatal("Failed to create cat")
+		log.Error("Failed to create cat")
+		return nil, err
 	}
 
 	return &cats, nil
@@ -84,14 +89,16 @@ func (c *PostgresRepository) GetCat(id string) (*models.Cats, error) {
 
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	// Достаём name
 	var name string
 	err = c.conn.QueryRow(context.Background(), "select name from cats where id=$1", id).Scan(&name)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	//Присваиваем параметры models.Cats
@@ -106,7 +113,8 @@ func (c *PostgresRepository) UpdateCat(id string, cats models.Cats) (*models.Cat
 	// Преобразуем id в int
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	// Обновляем models.Cat
@@ -115,10 +123,12 @@ func (c *PostgresRepository) UpdateCat(id string, cats models.Cats) (*models.Cat
 	// Вносим изменения в базу данных
 	commandTag, err := c.conn.Exec(context.Background(), "UPDATE cats SET name = $1 WHERE id = $2", cats.Name, cats.ID)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 	if commandTag.RowsAffected() != 1 {
 		log.Fatal("Row isn't update")
+		return nil, fmt.Errorf("cat doesn't update")
 	}
 
 	return &cats, nil
@@ -131,7 +141,8 @@ func (c *PostgresRepository) DeleteCat(id string) (*models.Cats, error) {
 	// Преобразуем id в int
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	// Обновляем models.Cats
@@ -140,17 +151,20 @@ func (c *PostgresRepository) DeleteCat(id string) (*models.Cats, error) {
 	var name string
 	err = c.conn.QueryRow(context.Background(), "select name from cats where id=$1", id).Scan(&name)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 	cat.Name = name
 
 	// Удаление из базы
 	commandTag, err := c.conn.Exec(context.Background(), "delete from cats where id=$1", id)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 	if commandTag.RowsAffected() != 1 {
-		log.Fatal("No row found to delete")
+		log.Error("No row found to delete")
+		return nil, fmt.Errorf("cat can't delete")
 	}
 
 	return &cat, nil
@@ -163,12 +177,14 @@ func (c *MongoRepository) GetAllCats() ([]*models.Cats, error) {
 	collection := c.client.Database(viper.GetString("mongodb.dbase")).Collection(viper.GetString("mongodb.collection"))
 	cur, currErr := collection.Find(context.TODO(), bson.D{})
 	if currErr != nil {
-		log.Fatal(currErr)
+		log.Error(currErr)
+		return nil, currErr
 	}
 	defer cur.Close(context.TODO())
 
 	if err := cur.All(context.TODO(), &allcats); err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 	return allcats, nil
 }
@@ -183,7 +199,8 @@ func (c *MongoRepository) CreateCats(cats models.Cats) (*models.Cats, error) {
 
 	_, insertErr := collection.InsertMany(context.TODO(), docs)
 	if insertErr != nil {
-		log.Fatal(insertErr)
+		log.Error(insertErr)
+		return nil, insertErr
 	}
 	return &cats, nil
 }
@@ -193,14 +210,16 @@ func (c *MongoRepository) GetCat(id string) (*models.Cats, error) {
 
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	collection := c.client.Database(viper.GetString("mongodb.dbase")).Collection(viper.GetString("mongodb.collection"))
 
 	err = collection.FindOne(context.TODO(), bson.D{primitive.E{Key: "id", Value: idInt}}).Decode(&cat)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 	return &cat, nil
 }
@@ -209,7 +228,8 @@ func (c *MongoRepository) UpdateCat(id string, cats models.Cats) (*models.Cats, 
 	// Преобразуем id в int
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	// Обновляем models.Cat
@@ -221,7 +241,8 @@ func (c *MongoRepository) UpdateCat(id string, cats models.Cats) (*models.Cats, 
 	update := bson.D{primitive.E{Key: "$set", Value: bson.D{primitive.E{Key: "name", Value: cats.Name}}}}
 	_, err = collection.UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 	return &cats, nil
 }
@@ -232,7 +253,8 @@ func (c *MongoRepository) DeleteCat(id string) (*models.Cats, error) {
 	// Преобразуем id в int
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	// Обновляес models.Cats
@@ -242,7 +264,8 @@ func (c *MongoRepository) DeleteCat(id string) (*models.Cats, error) {
 	collection := c.client.Database(viper.GetString("mongodb.dbase")).Collection(viper.GetString("mongodb.collection"))
 	_, err =collection.DeleteOne(context.TODO(), bson.D{primitive.E{Key: "id", Value: idInt}})
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	return &cat, nil

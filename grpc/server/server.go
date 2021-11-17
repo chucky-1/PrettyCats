@@ -2,14 +2,16 @@ package main
 
 import (
 	"CatsCrud/internal/models"
-	repository2 "CatsCrud/internal/repository"
+	rep "CatsCrud/internal/repository"
 	"CatsCrud/internal/service"
 	"CatsCrud/protocol"
 	"context"
+	"fmt"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"net"
 	"strconv"
-	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 const (
@@ -26,7 +28,8 @@ type catsCrud struct {
 func (s *catsCrud) GetAll(ctx context.Context, r *myGrpc.Request) (*myGrpc.AllCats, error) {
 	allCats, err := srv.GetAllCatsServ()
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	alc := new(myGrpc.AllCats)
@@ -47,7 +50,8 @@ func (s *catsCrud) Create(ctx context.Context, r *myGrpc.RequestCats) (*myGrpc.C
 
 	modCat, err := srv.CreateCatsServ(*modCat)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	cat := new(myGrpc.Cats)
@@ -59,7 +63,8 @@ func (s *catsCrud) Create(ctx context.Context, r *myGrpc.RequestCats) (*myGrpc.C
 func (s *catsCrud) Get(ctx context.Context, r *myGrpc.Id) (*myGrpc.Cats, error) {
 	modCat, err := srv.GetCatServ(r.GetId())
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	cat := new(myGrpc.Cats)
@@ -76,7 +81,8 @@ func (s *catsCrud) Update(ctx context.Context, r *myGrpc.RequestCats) (*myGrpc.C
 	modCats.Name = r.GetName()
 	modCats, err := srv.UpdateCatServ(idStr, *modCats)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	cat := new(myGrpc.Cats)
@@ -89,7 +95,8 @@ func (s *catsCrud) Update(ctx context.Context, r *myGrpc.RequestCats) (*myGrpc.C
 func (s *catsCrud) Delete(ctx context.Context, r *myGrpc.Id) (*myGrpc.Cats, error) {
 	modCat, err := srv.DeleteCatServ(r.GetId())
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	cat := new(myGrpc.Cats)
@@ -102,29 +109,40 @@ func (s *catsCrud) Delete(ctx context.Context, r *myGrpc.Id) (*myGrpc.Cats, erro
 func main() {
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Errorf("failed to listen: %v", err)
+		return
 	}
 	s := grpc.NewServer()
 	myGrpc.RegisterCatsCrudServer(s, new(catsCrud))
-	log.Printf("server listening at %v", lis.Addr())
+	fmt.Printf("server listening at %v\n", lis.Addr())
 
-	var rps repository2.Repository
+	var rps rep.Repository
 	if flag == 1 {
 		// Соединение с postgres
-		conn := repository2.RequestDB()
+		conn, err := rep.RequestDB()
+		if err != nil {
+			log.Error(err)
+			return
+		}
 		defer conn.Close()
 
-		rps = repository2.NewPostgresRepository(conn)
+		rps = rep.NewPostgresRepository(conn)
 	} else if flag == 2 {
 		//Соединение с mongo
-		client, cancel := repository2.RequestMongo()
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		client, err := rep.RequestMongo(ctx)
+		if err != nil {
+			log.Error(err)
+			return
+		}
 		defer cancel()
 
-		rps = repository2.NewMongoRepository(client)
+		rps = rep.NewMongoRepository(client)
 	}
 	srv = service.NewCatService(rps)
 
 	if err = s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		log.Errorf("failed to serve: %v", err)
+		return
 	}
 }

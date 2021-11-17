@@ -3,8 +3,8 @@ package handler
 import (
 	"CatsCrud/internal/models"
 	"CatsCrud/internal/service"
-	"encoding/json"
 	"github.com/labstack/echo/v4"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -27,19 +27,20 @@ func NewUserAuthHandler(src service.Auth) *UserAuthHandler {
 // @Failure 500 {object} models.User
 // @Router /register [post]
 func (h *UserAuthHandler) SignUp(c echo.Context) error {
-	var user models.User
+	user := new(models.User)
 
-	err := json.NewDecoder(c.Request().Body).Decode(&user)
+	err := c.Bind(user)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, new(models.User))
+		return c.JSON(http.StatusBadRequest, err)
 	}
 
 	if err = c.Validate(user); err != nil {
-		return c.JSON(http.StatusBadRequest, new(models.User))
+		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	id, err := h.src.CreateUserServ(user)
+	id, err := h.src.CreateUserServ(*user)
 	if err != nil {
+		log.Error(err)
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
@@ -62,19 +63,20 @@ type SignInInput struct {
 // @Failure 500 {object} models.User
 // @Router /login [post]
 func (h *UserAuthHandler) SignIn(c echo.Context) error {
-	var input SignInInput
+	input := new(SignInInput)
 
-	err := json.NewDecoder(c.Request().Body).Decode(&input)
+	err := c.Bind(input)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, new(models.User))
+		return c.JSON(http.StatusBadRequest, err)
 	}
 
 	if err = c.Validate(input); err != nil {
-		return c.JSON(http.StatusBadRequest, new(models.User))
+		return c.JSON(http.StatusBadRequest,err)
 	}
 
 	token, err := h.src.GenerateToken(input.Username, input.Password)
 	if err != nil {
+		log.Error(err)
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 

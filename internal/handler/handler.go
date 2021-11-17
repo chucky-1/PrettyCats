@@ -5,6 +5,7 @@ import (
 	"CatsCrud/internal/request"
 	"CatsCrud/internal/service"
 	"github.com/labstack/echo/v4"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 )
@@ -26,7 +27,8 @@ func NewCatHandler(srv service.Service) *CatHandler {
 func(h *CatHandler) GetAllCats(c echo.Context) error {
 	allcats, err :=  h.src.GetAllCatsServ()
 	if err != nil {
-		return err
+		log.Error(err)
+		return c.JSON(http.StatusInternalServerError, err)
 	}
 	return c.JSON(http.StatusOK, allcats)
 }
@@ -43,15 +45,16 @@ func(h *CatHandler) GetAllCats(c echo.Context) error {
 func (h *CatHandler) CreateCats(c echo.Context) error {
 	cats := new(models.Cats)
 	if err := c.Bind(cats); err != nil {
-		return c.JSON(http.StatusBadRequest, new(models.Cats))
+		return c.JSON(http.StatusBadRequest, err)
 	}
 	if err := c.Validate(cats); err != nil {
-		return c.JSON(http.StatusBadRequest, new(models.Cats))
+		return c.JSON(http.StatusBadRequest, err)
 	}
 
 	cat, err := h.src.CreateCatsServ(*cats)
 	if err != nil {
-		return err
+		log.Error(err)
+		return c.JSON(http.StatusInternalServerError, err)
 	}
 	return c.JSON(http.StatusCreated, cat)
 }
@@ -69,15 +72,16 @@ func (h *CatHandler) CreateCats(c echo.Context) error {
 func (h *CatHandler) GetCat(c echo.Context) error {
 	id := new(request.RequestCatId)
 	if err := c.Bind(id); err != nil {
-		return err
+		return c.JSON(http.StatusBadRequest, err)
 	}
 	if err := c.Validate(id); err != nil {
-		return c.JSON(http.StatusBadRequest, new(models.Cats))
+		return c.JSON(http.StatusBadRequest, err)
 	}
 
 	cat, err := h.src.GetCatServ(strconv.Itoa(int(id.ID)))
 	if err != nil {
-		return err
+		log.Error(err)
+		return c.JSON(http.StatusBadRequest, err)
 	}
 	return c.JSON(http.StatusOK, cat)
 }
@@ -96,15 +100,16 @@ func (h *CatHandler) GetCat(c echo.Context) error {
 func (h *CatHandler) UpdateCat(c echo.Context) error {
 	cats := new(models.Cats)
 	if err := c.Bind(cats); err != err {
-		return c.JSON(http.StatusBadRequest, new(models.Cats))
+		return c.JSON(http.StatusBadRequest, err)
 	}
 	if err := c.Validate(cats); err != nil {
-		return c.JSON(http.StatusBadRequest, new(models.Cats))
+		return c.JSON(http.StatusBadRequest, err)
 	}
 
 	cat, err := h.src.UpdateCatServ(strconv.Itoa(int(cats.ID)), *cats)
 	if err != nil {
-		return err
+		log.Error(err)
+		return c.JSON(http.StatusInternalServerError, err)
 	}
 	return c.JSON(http.StatusOK, cat)
 }
@@ -122,15 +127,16 @@ func (h *CatHandler) UpdateCat(c echo.Context) error {
 func (h *CatHandler) DeleteCat(c echo.Context) error {
 	id := new(request.RequestCatId)
 	if err := c.Bind(id); err != nil {
-		return c.JSON(http.StatusBadRequest, new(models.Cats))
+		return c.JSON(http.StatusBadRequest, err)
 	}
 	if err := c.Validate(id); err != nil {
-		return c.JSON(http.StatusBadRequest, new(models.Cats))
+		return c.JSON(http.StatusBadRequest, err)
 	}
 
 	cat, err := h.src.DeleteCatServ(strconv.Itoa(int(id.ID)))
 	if err != nil {
-		return err
+		log.Error(err)
+		return c.JSON(http.StatusInternalServerError, err)
 	}
 	return c.JSON(http.StatusOK, cat)
 }
