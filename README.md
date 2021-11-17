@@ -1,3 +1,3 @@
 # Pretty Cats
 
-My first application on golang!
+My first application on Go!
