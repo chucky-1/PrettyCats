@@ -1,27 +1,54 @@
+// Package main starts application
 package main
 
 import (
+	_ "CatsCrud/docs"
+	"CatsCrud/grpc/server"
 	"CatsCrud/internal/handler"
 	rep "CatsCrud/internal/repository"
 	"CatsCrud/internal/request"
 	"CatsCrud/internal/service"
-	"context"
+	myGrpc "CatsCrud/protocol"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"github.com/swaggo/echo-swagger"
-	"log"
+	sw "github.com/swaggo/echo-swagger"
+	"google.golang.org/grpc"
+
+	"context"
+	"fmt"
+	"net"
 	"net/http"
 	"time"
-
-	_ "CatsCrud/docs"
 )
 
-// 1 - postgres, 2 - mongo
-const flag = 1
+const (
+	flag     = true // true - postgres; false - mongo
+	portEcho = ":8000"
+	portGrpc = "localhost:10000"
+)
 
-// @title Cats CRUD
+// NewGrpcServer is constructor
+func NewGrpcServer(portGrpc string, srv service.Service) {
+	lis, err := net.Listen("tcp", portGrpc)
+	if err != nil {
+		log.Errorf("failed to listen: %v", err)
+		return
+	}
+
+	s := grpc.NewServer()
+	myGrpc.RegisterCatsCrudServer(s, server.NewCats(srv))
+	fmt.Printf("server listening at %v\n", lis.Addr())
+	if err = s.Serve(lis); err != nil {
+		log.Errorf("failed to serve: %v", err)
+		return
+	}
+}
+
+// @title Pretty Cats
 // @version 1.0
 // @description This simple application is written for teaching Go.
 
@@ -32,6 +59,7 @@ const flag = 1
 // @in header
 // @name Authorization
 func main() {
+	// echo
 	e := echo.New()
 	e.Validator = &request.CustomValidator{Validator: validator.New()}
 
@@ -42,25 +70,24 @@ func main() {
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, Cats!")
 	})
-
 	var rps rep.Repository
 	var rpsAuth rep.Auth
-	if flag == 1 {
+	if flag {
 		// Соединение с postgres
 		conn, err := rep.RequestDB()
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 		defer conn.Close()
 
 		rps = rep.NewPostgresRepository(conn)
 		rpsAuth = rep.NewPostgresRepository(conn)
-	} else if flag == 2 {
-		//Соединение с mongo
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	} else {
+		// Соединение с mongo
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		client, err := rep.RequestMongo(ctx)
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 		defer cancel()
 
@@ -78,6 +105,9 @@ func main() {
 
 	var srvAuth service.Auth = service.NewUserAuthService(rpsAuth)
 	hndlrAuth := handler.NewUserAuthHandler(srvAuth)
+
+	go NewGrpcServer(portGrpc, srv)
+
 	e.POST("/register", hndlrAuth.SignUp)
 	e.POST("/login", hndlrAuth.SignIn)
 
@@ -91,6 +121,6 @@ func main() {
 		r.GET("", hndlrAuth.Restricted)
 	}
 
-	e.GET("/swagger/*", echoSwagger.WrapHandler)
-	e.Logger.Fatal(e.Start(":8000"))
+	e.GET("/swagger/*", sw.WrapHandler)
+	e.Logger.Fatal(e.Start(portEcho))
 }

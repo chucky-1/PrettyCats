@@ -19,10 +19,10 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CatsCrudClient interface {
 	GetAll(ctx context.Context, in *Request, opts ...grpc.CallOption) (*AllCats, error)
-	Create(ctx context.Context, in *RequestCats, opts ...grpc.CallOption) (*Cats, error)
-	Get(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Cats, error)
-	Update(ctx context.Context, in *RequestCats, opts ...grpc.CallOption) (*Cats, error)
-	Delete(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Cats, error)
+	Create(ctx context.Context, in *RequestCat, opts ...grpc.CallOption) (*Cat, error)
+	Get(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Cat, error)
+	Update(ctx context.Context, in *RequestCat, opts ...grpc.CallOption) (*Cat, error)
+	Delete(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Cat, error)
 }
 
 type catsCrudClient struct {
@@ -42,8 +42,8 @@ func (c *catsCrudClient) GetAll(ctx context.Context, in *Request, opts ...grpc.C
 	return out, nil
 }
 
-func (c *catsCrudClient) Create(ctx context.Context, in *RequestCats, opts ...grpc.CallOption) (*Cats, error) {
-	out := new(Cats)
+func (c *catsCrudClient) Create(ctx context.Context, in *RequestCat, opts ...grpc.CallOption) (*Cat, error) {
+	out := new(Cat)
 	err := c.cc.Invoke(ctx, "/myGrpc.CatsCrud/Create", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -51,8 +51,8 @@ func (c *catsCrudClient) Create(ctx context.Context, in *RequestCats, opts ...gr
 	return out, nil
 }
 
-func (c *catsCrudClient) Get(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Cats, error) {
-	out := new(Cats)
+func (c *catsCrudClient) Get(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Cat, error) {
+	out := new(Cat)
 	err := c.cc.Invoke(ctx, "/myGrpc.CatsCrud/Get", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -60,8 +60,8 @@ func (c *catsCrudClient) Get(ctx context.Context, in *Id, opts ...grpc.CallOptio
 	return out, nil
 }
 
-func (c *catsCrudClient) Update(ctx context.Context, in *RequestCats, opts ...grpc.CallOption) (*Cats, error) {
-	out := new(Cats)
+func (c *catsCrudClient) Update(ctx context.Context, in *RequestCat, opts ...grpc.CallOption) (*Cat, error) {
+	out := new(Cat)
 	err := c.cc.Invoke(ctx, "/myGrpc.CatsCrud/Update", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -69,8 +69,8 @@ func (c *catsCrudClient) Update(ctx context.Context, in *RequestCats, opts ...gr
 	return out, nil
 }
 
-func (c *catsCrudClient) Delete(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Cats, error) {
-	out := new(Cats)
+func (c *catsCrudClient) Delete(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Cat, error) {
+	out := new(Cat)
 	err := c.cc.Invoke(ctx, "/myGrpc.CatsCrud/Delete", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -83,10 +83,10 @@ func (c *catsCrudClient) Delete(ctx context.Context, in *Id, opts ...grpc.CallOp
 // for forward compatibility
 type CatsCrudServer interface {
 	GetAll(context.Context, *Request) (*AllCats, error)
-	Create(context.Context, *RequestCats) (*Cats, error)
-	Get(context.Context, *Id) (*Cats, error)
-	Update(context.Context, *RequestCats) (*Cats, error)
-	Delete(context.Context, *Id) (*Cats, error)
+	Create(context.Context, *RequestCat) (*Cat, error)
+	Get(context.Context, *Id) (*Cat, error)
+	Update(context.Context, *RequestCat) (*Cat, error)
+	Delete(context.Context, *Id) (*Cat, error)
 	mustEmbedUnimplementedCatsCrudServer()
 }
 
@@ -97,16 +97,16 @@ type UnimplementedCatsCrudServer struct {
 func (UnimplementedCatsCrudServer) GetAll(context.Context, *Request) (*AllCats, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAll not implemented")
 }
-func (UnimplementedCatsCrudServer) Create(context.Context, *RequestCats) (*Cats, error) {
+func (UnimplementedCatsCrudServer) Create(context.Context, *RequestCat) (*Cat, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedCatsCrudServer) Get(context.Context, *Id) (*Cats, error) {
+func (UnimplementedCatsCrudServer) Get(context.Context, *Id) (*Cat, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
-func (UnimplementedCatsCrudServer) Update(context.Context, *RequestCats) (*Cats, error) {
+func (UnimplementedCatsCrudServer) Update(context.Context, *RequestCat) (*Cat, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
-func (UnimplementedCatsCrudServer) Delete(context.Context, *Id) (*Cats, error) {
+func (UnimplementedCatsCrudServer) Delete(context.Context, *Id) (*Cat, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
 func (UnimplementedCatsCrudServer) mustEmbedUnimplementedCatsCrudServer() {}
@@ -141,7 +141,7 @@ func _CatsCrud_GetAll_Handler(srv interface{}, ctx context.Context, dec func(int
 }
 
 func _CatsCrud_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RequestCats)
+	in := new(RequestCat)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func _CatsCrud_Create_Handler(srv interface{}, ctx context.Context, dec func(int
 		FullMethod: "/myGrpc.CatsCrud/Create",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CatsCrudServer).Create(ctx, req.(*RequestCats))
+		return srv.(CatsCrudServer).Create(ctx, req.(*RequestCat))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -177,7 +177,7 @@ func _CatsCrud_Get_Handler(srv interface{}, ctx context.Context, dec func(interf
 }
 
 func _CatsCrud_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RequestCats)
+	in := new(RequestCat)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func _CatsCrud_Update_Handler(srv interface{}, ctx context.Context, dec func(int
 		FullMethod: "/myGrpc.CatsCrud/Update",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CatsCrudServer).Update(ctx, req.(*RequestCats))
+		return srv.(CatsCrudServer).Update(ctx, req.(*RequestCat))
 	}
 	return interceptor(ctx, in, info, handler)
 }

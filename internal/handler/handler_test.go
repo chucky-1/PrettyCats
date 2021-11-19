@@ -3,16 +3,16 @@ package handler
 import (
 	"CatsCrud/internal/request"
 	"CatsCrud/internal/service/mock"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
-
-var catHandler *CatHandler
 
 func TestCatHandler_GetAllCats(t *testing.T) {
 	// Setup
@@ -24,98 +24,74 @@ func TestCatHandler_GetAllCats(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	srv := mock.NewMockCatServ()
-	catHandler = NewCatHandler(srv)
+	var Handler = NewCatHandler(srv)
 
 	// Assertions
-	if assert.NoError(t, catHandler.GetAllCats(c)) {
+	if assert.NoError(t, Handler.GetAllCats(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, catsJSON, strings.Trim(rec.Body.String(), "\n"))
 	}
 }
 
 func TestCatHandler_CreateCats(t *testing.T) {
-	TestTable := []struct{
-		name string
-		inputJson string
+	TestTable := []struct {
+		name             string
+		inputJSON        string
 		exceptStatusCode int
-		exceptBody string
 	}{
 		{
-			name: "OK",
-			inputJson: `{"id":1,"name":"Jon Snow"}`,
-			exceptStatusCode: http.StatusCreated,
-			exceptBody: `{"id":1,"name":"Jon Snow"}`,
+			name: "OK", inputJSON: `{"id":1,"name":"Jon Snow"}`, exceptStatusCode: http.StatusCreated,
 		},
 		{
-			name: "Name is nill",
-			inputJson: `{"id":1}`,
-			exceptStatusCode: http.StatusBadRequest,
-			exceptBody: `{"id":0,"name":""}`,
+			name: "Name is nill", inputJSON: `{"id":1}`, exceptStatusCode: http.StatusBadRequest,
 		},
 		{
-			name: "ID is nill",
-			inputJson: `{"name":"1"}`,
-			exceptStatusCode: http.StatusBadRequest,
-			exceptBody: `{"id":0,"name":""}`,
+			name: "ID is nill", inputJSON: `{"name":"1"}`, exceptStatusCode: http.StatusBadRequest,
 		},
 		{
-			name: "Params isn't valid",
-			inputJson: `{"id":"1", "name":"Jon Snow"}`,
-			exceptStatusCode: http.StatusBadRequest,
-			exceptBody: `{"id":0,"name":""}`,
+			name: "Params isn't valid", inputJSON: `{"id":"1", "name":"Jon Snow"}`, exceptStatusCode: http.StatusBadRequest,
 		},
 		{
-			name: "name too small",
-			inputJson: `{"id":1,"name":"Jo"}`,
-			exceptStatusCode: http.StatusBadRequest,
-			exceptBody: `{"id":0,"name":""}`,
+			name: "name too small", inputJSON: `{"id":1,"name":"Jo"}`, exceptStatusCode: http.StatusBadRequest,
 		},
 	}
 
 	for _, TestCase := range TestTable {
+		TestCase := TestCase // pin!
 		t.Run(TestCase.name, func(t *testing.T) {
 			e := echo.New()
 			e.Validator = &request.CustomValidator{Validator: validator.New()}
-			req := httptest.NewRequest(http.MethodPost, "/cats", strings.NewReader(TestCase.inputJson))
+			req := httptest.NewRequest(http.MethodPost, "/cats", strings.NewReader(TestCase.inputJSON))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 			srv := mock.NewMockCatServ()
-			catHandler = NewCatHandler(srv)
+			var Handler = NewCatHandler(srv)
 
-			if assert.NoError(t, catHandler.CreateCats(c)) {
+			if assert.NoError(t, Handler.CreateCats(c)) {
 				assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
-				assert.Equal(t, TestCase.exceptBody, strings.Trim(rec.Body.String(), "\n"))
 			}
 		})
 	}
 }
 
 func TestCatHandler_GetCat(t *testing.T) {
-	TestTable := []struct{
-		name string
-		setParamNames string
-		setParamValues string
+	TestTable := []struct {
+		name             string
+		setParamNames    string
+		setParamValues   string
 		exceptStatusCode int
-		exceptBody string
 	}{
 		{
-			name: "OK",
-			setParamNames: "id",
-			setParamValues: "1",
-			exceptStatusCode: http.StatusOK,
-			exceptBody: `{"id":1,"name":"Jon Snow"}`,
+			name: "OK", setParamNames: "id", setParamValues: "1", exceptStatusCode: http.StatusOK,
 		},
 		{
-			name: "ID is nill",
-			setParamNames: "",
-			setParamValues: "",
-			exceptStatusCode: http.StatusBadRequest,
-			exceptBody: `{"id":0,"name":""}`,
+			name: "ID is nill", setParamNames: "", setParamValues: "", exceptStatusCode: http.StatusBadRequest,
 		},
 	}
 
 	for _, TestCase := range TestTable {
+		TestCase := TestCase // pin!
 		t.Run(TestCase.name, func(t *testing.T) {
 			e := echo.New()
 			e.Validator = &request.CustomValidator{Validator: validator.New()}
@@ -126,72 +102,46 @@ func TestCatHandler_GetCat(t *testing.T) {
 			c.SetParamNames(TestCase.setParamNames)
 			c.SetParamValues(TestCase.setParamValues)
 			srv := mock.NewMockCatServ()
-			catHandler = NewCatHandler(srv)
+			var Handler = NewCatHandler(srv)
 
-			if assert.NoError(t, catHandler.GetCat(c)) {
+			if assert.NoError(t, Handler.GetCat(c)) {
 				assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
-				assert.Equal(t, TestCase.exceptBody, strings.Trim(rec.Body.String(), "\n"))
 			}
 		})
 	}
 }
 
 func TestCatHandler_UpdateCat(t *testing.T) {
-	TestTable := []struct{
-		name string
-		setParamNames string
-		setParamValues string
-		inputJson string
+	TestTable := []struct {
+		name             string
+		setParamNames    string
+		setParamValues   string
+		inputJSON        string
 		exceptStatusCode int
-		exceptBody string
 	}{
 		{
-			name: "OK",
-			setParamNames: "id",
-			setParamValues: "1",
-			inputJson: `{"name":"Jon Snow"}`,
-			exceptStatusCode: http.StatusOK,
-			exceptBody: `{"id":1,"name":"Jon Snow"}`,
+			name: "OK", setParamNames: "id", setParamValues: "1", inputJSON: `{"name":"Jon Snow"}`, exceptStatusCode: http.StatusOK,
 		},
 		{
-			name: "ID is nill",
-			setParamNames: "",
-			setParamValues: "",
-			inputJson: `{"name":"Jon Snow"}`,
-			exceptStatusCode: http.StatusBadRequest,
-			exceptBody: `{"id":0,"name":""}`,
+			name: "ID is nill", setParamNames: "", setParamValues: "", inputJSON: `{"name":"Jon Snow"}`, exceptStatusCode: http.StatusBadRequest,
 		},
 		{
-			name: "Name is nill",
-			setParamNames: "id",
-			setParamValues: "1",
-			inputJson: `{}`,
-			exceptStatusCode: http.StatusBadRequest,
-			exceptBody: `{"id":0,"name":""}`,
+			name: "Name is nill", setParamNames: "id", setParamValues: "1", inputJSON: `{}`, exceptStatusCode: http.StatusBadRequest,
 		},
 		{
-			name: "ID isn't int",
-			setParamNames: "id",
-			setParamValues: "text",
-			inputJson: `{}`,
-			exceptStatusCode: http.StatusBadRequest,
-			exceptBody: `{"id":0,"name":""}`,
+			name: "ID isn't int", setParamNames: "id", setParamValues: "text", inputJSON: `{}`, exceptStatusCode: http.StatusBadRequest,
 		},
 		{
-			name: "Name isn't string",
-			setParamNames: "id",
-			setParamValues: "1",
-			inputJson: `{"name":1}`,
-			exceptStatusCode: http.StatusBadRequest,
-			exceptBody: `{"id":0,"name":""}`,
+			name: "Name isn't string", setParamNames: "id", setParamValues: "1", inputJSON: `{"name":1}`, exceptStatusCode: http.StatusBadRequest,
 		},
 	}
 
 	for _, TestCase := range TestTable {
+		TestCase := TestCase // pin!
 		t.Run(TestCase.name, func(t *testing.T) {
 			e := echo.New()
 			e.Validator = &request.CustomValidator{Validator: validator.New()}
-			req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(TestCase.inputJson))
+			req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(TestCase.inputJSON))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
@@ -199,48 +149,35 @@ func TestCatHandler_UpdateCat(t *testing.T) {
 			c.SetParamNames(TestCase.setParamNames)
 			c.SetParamValues(TestCase.setParamValues)
 			srv := mock.NewMockCatServ()
-			catHandler = NewCatHandler(srv)
+			var Handler = NewCatHandler(srv)
 
-			if assert.NoError(t, catHandler.UpdateCat(c)) {
+			if assert.NoError(t, Handler.UpdateCat(c)) {
 				assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
-				assert.Equal(t, TestCase.exceptBody, strings.Trim(rec.Body.String(), "\n"))
 			}
 		})
 	}
 }
 
 func TestCatHandler_DeleteCat(t *testing.T) {
-	TestTable := []struct{
-		name string
-		setParamNames string
-		setParamValues string
+	TestTable := []struct {
+		name             string
+		setParamNames    string
+		setParamValues   string
 		exceptStatusCode int
-		exceptBody string
 	}{
 		{
-			name: "OK",
-			setParamNames: "id",
-			setParamValues: "1",
-			exceptStatusCode: http.StatusOK,
-			exceptBody: `{"id":1,"name":"Jon Snow"}`,
+			name: "OK", setParamNames: "id", setParamValues: "1", exceptStatusCode: http.StatusOK,
 		},
 		{
-			name: "ID is nill",
-			setParamNames: "",
-			setParamValues: "",
-			exceptStatusCode: http.StatusBadRequest,
-			exceptBody: `{"id":0,"name":""}`,
+			name: "ID is nill", setParamNames: "", setParamValues: "", exceptStatusCode: http.StatusBadRequest,
 		},
 		{
-			name: "ID isn't int",
-			setParamNames: "id",
-			setParamValues: "text",
-			exceptStatusCode: http.StatusBadRequest,
-			exceptBody: `{"id":0,"name":""}`,
+			name: "ID isn't int", setParamNames: "id", setParamValues: "text", exceptStatusCode: http.StatusBadRequest,
 		},
 	}
 
 	for _, TestCase := range TestTable {
+		TestCase := TestCase // pin!
 		t.Run(TestCase.name, func(t *testing.T) {
 			e := echo.New()
 			e.Validator = &request.CustomValidator{Validator: validator.New()}
@@ -251,11 +188,10 @@ func TestCatHandler_DeleteCat(t *testing.T) {
 			c.SetParamNames(TestCase.setParamNames)
 			c.SetParamValues(TestCase.setParamValues)
 			srv := mock.NewMockCatServ()
-			catHandler = NewCatHandler(srv)
+			var Handler = NewCatHandler(srv)
 
-			if assert.NoError(t, catHandler.DeleteCat(c)) {
+			if assert.NoError(t, Handler.DeleteCat(c)) {
 				assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
-				assert.Equal(t, TestCase.exceptBody, strings.Trim(rec.Body.String(), "\n"))
 			}
 		})
 	}

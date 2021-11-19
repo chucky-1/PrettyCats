@@ -1,32 +1,31 @@
-package main
+// Package server has methods on the server side of grpc
+package server
 
 import (
 	"CatsCrud/internal/models"
-	rep "CatsCrud/internal/repository"
 	"CatsCrud/internal/service"
-	"CatsCrud/protocol"
-	"context"
-	"fmt"
+	myGrpc "CatsCrud/protocol"
+
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"net"
+
+	"context"
 	"strconv"
-	"time"
 )
 
-const (
-	flag = 1
-	port = ":10000"
-)
-
-var srv *service.CatService
-
-type catsCrud struct {
+// Cats have application's methods in service side
+type Cats struct {
 	myGrpc.UnimplementedCatsCrudServer
+	srv service.Service
 }
 
-func (s *catsCrud) GetAll(ctx context.Context, r *myGrpc.Request) (*myGrpc.AllCats, error) {
-	allCats, err := srv.GetAllCatsServ()
+// NewCats is constructor
+func NewCats(srv service.Service) *Cats {
+	return &Cats{srv: srv}
+}
+
+// GetAll is method of server of grpc
+func (s *Cats) GetAll(ctx context.Context, r *myGrpc.Request) (*myGrpc.AllCats, error) {
+	allCats, err := s.srv.GetAllCatsServ()
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -34,115 +33,78 @@ func (s *catsCrud) GetAll(ctx context.Context, r *myGrpc.Request) (*myGrpc.AllCa
 
 	alc := new(myGrpc.AllCats)
 	for _, i := range allCats {
-		cts := new(myGrpc.Cats)
+		cts := new(myGrpc.Cat)
 		cts.Id = i.ID
 		cts.Name = i.Name
-		alc.Cats = append(alc.Cats, cts)
+		alc.Cat = append(alc.Cat, cts)
 	}
 
 	return alc, nil
 }
 
-func (s *catsCrud) Create(ctx context.Context, r *myGrpc.RequestCats) (*myGrpc.Cats, error) {
+// Create is method of server of grpc
+func (s *Cats) Create(ctx context.Context, r *myGrpc.RequestCat) (*myGrpc.Cat, error) {
 	modCat := new(models.Cats)
 	modCat.ID = r.GetId()
 	modCat.Name = r.GetName()
 
-	modCat, err := srv.CreateCatsServ(*modCat)
+	modCat, err := s.srv.CreateCatsServ(*modCat)
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
 
-	cat := new(myGrpc.Cats)
+	cat := new(myGrpc.Cat)
 	cat.Id = modCat.ID
 	cat.Name = modCat.Name
 	return cat, nil
 }
 
-func (s *catsCrud) Get(ctx context.Context, r *myGrpc.Id) (*myGrpc.Cats, error) {
-	modCat, err := srv.GetCatServ(r.GetId())
+// Get is method of server of grpc
+func (s *Cats) Get(ctx context.Context, r *myGrpc.Id) (*myGrpc.Cat, error) {
+	modCat, err := s.srv.GetCatServ(r.GetId())
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
 
-	cat := new(myGrpc.Cats)
+	cat := new(myGrpc.Cat)
 	cat.Id = modCat.ID
 	cat.Name = modCat.Name
 
 	return cat, nil
 }
 
-func (s *catsCrud) Update(ctx context.Context, r *myGrpc.RequestCats) (*myGrpc.Cats, error) {
+// Update is method of server of grpc
+func (s *Cats) Update(ctx context.Context, r *myGrpc.RequestCat) (*myGrpc.Cat, error) {
 	idStr := strconv.Itoa(int(r.GetId()))
 	modCats := new(models.Cats)
 	modCats.ID = r.GetId()
 	modCats.Name = r.GetName()
-	modCats, err := srv.UpdateCatServ(idStr, *modCats)
+	modCats, err := s.srv.UpdateCatServ(idStr, *modCats)
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
 
-	cat := new(myGrpc.Cats)
+	cat := new(myGrpc.Cat)
 	cat.Id = modCats.ID
 	cat.Name = modCats.Name
 
 	return cat, nil
 }
 
-func (s *catsCrud) Delete(ctx context.Context, r *myGrpc.Id) (*myGrpc.Cats, error) {
-	modCat, err := srv.DeleteCatServ(r.GetId())
+// Delete is method of server of grpc
+func (s *Cats) Delete(ctx context.Context, r *myGrpc.Id) (*myGrpc.Cat, error) {
+	modCat, err := s.srv.DeleteCatServ(r.GetId())
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
 
-	cat := new(myGrpc.Cats)
+	cat := new(myGrpc.Cat)
 	cat.Id = modCat.ID
 	cat.Name = modCat.Name
 
 	return cat, nil
-}
-
-func main() {
-	lis, err := net.Listen("tcp", port)
-	if err != nil {
-		log.Errorf("failed to listen: %v", err)
-		return
-	}
-	s := grpc.NewServer()
-	myGrpc.RegisterCatsCrudServer(s, new(catsCrud))
-	fmt.Printf("server listening at %v\n", lis.Addr())
-
-	var rps rep.Repository
-	if flag == 1 {
-		// Соединение с postgres
-		conn, err := rep.RequestDB()
-		if err != nil {
-			log.Error(err)
-			return
-		}
-		defer conn.Close()
-
-		rps = rep.NewPostgresRepository(conn)
-	} else if flag == 2 {
-		//Соединение с mongo
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		client, err := rep.RequestMongo(ctx)
-		if err != nil {
-			log.Error(err)
-			return
-		}
-		defer cancel()
-
-		rps = rep.NewMongoRepository(client)
-	}
-	srv = service.NewCatService(rps)
-
-	if err = s.Serve(lis); err != nil {
-		log.Errorf("failed to serve: %v", err)
-		return
-	}
 }

@@ -1,6 +1,6 @@
 package handler
 
-//func TestUserAuthHandler_Restricted(t *testing.T) {
+// func TestUserAuthHandler_Restricted(t *testing.T) {
 //	e := echo.New()
 //	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(`{}`))
 //	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
@@ -16,4 +16,4 @@ package handler
 //		//assert.Equal(t, TestCase.exceptBody, strings.Trim(rec.Body.String(), "\n"))
 //
 //	}
-//}
+// }

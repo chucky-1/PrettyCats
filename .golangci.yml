@@ -81,6 +81,8 @@ run:
     - vendor
     - e2e
     - test
+  skip-files:
+    - repository_test.go
 
 issues:
   max-same-issues: 0

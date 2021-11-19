@@ -1,15 +1,17 @@
 package repository
 
 import (
-	"context"
-	"fmt"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+
+	"context"
+	"fmt"
 	"os"
 )
 
+// RequestDB sets a connection with postgres
 func RequestDB() (*pgxpool.Pool, error) {
 	if err := initConfig(); err != nil {
 		log.Error("error config files")

@@ -2,9 +2,8 @@ package repository
 
 import (
 	"CatsCrud/internal/models"
-	"context"
 	"errors"
-	"fmt"
+
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -13,6 +12,9 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+
+	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"testing"
@@ -50,9 +52,9 @@ func TestMain(m *testing.M) {
 	}
 
 	hostAndPort = resource.GetHostPort("5432/tcp")
-	databaseUrl := fmt.Sprintf("postgres://user_name:secret@%s/dbname?sslmode=disable", hostAndPort)
+	databaseURL := fmt.Sprintf("postgres://user_name:secret@%s/dbname?sslmode=disable", hostAndPort)
 
-	log.Println("Connecting to database on url: ", databaseUrl)
+	log.Println("Connecting to database on url: ", databaseURL)
 
 	err = resource.Expire(120)
 	if err != nil {
@@ -63,9 +65,9 @@ func TestMain(m *testing.M) {
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 	pool.MaxWait = 180 * time.Second
 	if err = pool.Retry(func() error {
-		db, err = pgxpool.Connect(context.Background(), databaseUrl)
+		db, err = pgxpool.Connect(context.Background(), databaseURL)
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
 		}
 		return nil
 	}); err != nil {
@@ -73,7 +75,7 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	//Run tests
+	// Run tests
 	code := m.Run()
 
 	// You can't defer this because os.Exit doesn't care for defer
@@ -87,8 +89,7 @@ func TestMain(m *testing.M) {
 
 // Миграции
 func MyMigrate() {
-	cmd := exec.Command("flyway", "-url=jdbc:postgresql://" + hostAndPort + "/dbname",
-		"-user=user_name", "-password=secret", "migrate")
+	cmd := exec.Command("flyway", "-url=jdbc:postgresql://", hostAndPort, "/dbname", "-user=user_name", "-password=secret", "migrate")
 	cmd.Dir = "C:/Program Files/flyway-8.0.3"
 	err := cmd.Run()
 	if err != nil {
@@ -103,12 +104,13 @@ const countOfCats = 2
 // Инициализация репозитория
 var rps Repository
 var rpsAuth Auth
+
 func NewPostgresRepositoryTest(db *pgxpool.Pool) {
 	rps = NewPostgresRepository(db)
 	rpsAuth = NewPostgresRepository(db)
 }
 
-func TestInit(t *testing.T)  {
+func TestInit(t *testing.T) {
 	// Делаем миграции и инициализируем репозиторий
 	MyMigrate()
 	NewPostgresRepositoryTest(db)
@@ -153,7 +155,7 @@ func TestPostgresRepository_CreateCats(t *testing.T) {
 		return
 	}
 	count := len(allcats)
-	assert.Equal(t, count, countOfCats + 1)
+	assert.Equal(t, count, countOfCats+1)
 }
 
 func TestPostgresRepository_GetCat(t *testing.T) {
@@ -180,7 +182,7 @@ func TestPostgresRepository_UpdateCat(t *testing.T) {
 		Name: "dogs",
 	}
 
-	//Тест
+	// Тест
 	cat, err := rps.UpdateCat(id, catTrue)
 
 	// Проверка возвращаемых значений
@@ -213,24 +215,22 @@ func TestPostgresRepository_DeleteCat(t *testing.T) {
 }
 
 func TestPostgresRepository_CreateUser(t *testing.T) {
-	TestTable := []struct{
-		name string
-		user models.User
+	TestTable := []struct {
+		name        string
+		user        models.User
 		exceptError error
 	}{
 		{
 			name: "OK",
 			user: models.User{
-				ID: 1,
-				Name:     "Jon Snow",
-				Username: "Jonny",
-				Password: "Jon25@ew5",
+				ID: 1, Name: "Jon Snow", Username: "Jonny", Password: "Jon25@ew5",
 			},
 			exceptError: nil,
 		},
 	}
 
 	for _, TestCase := range TestTable {
+		TestCase := TestCase // pin!
 		t.Run(TestCase.name, func(t *testing.T) {
 			id, err := rpsAuth.CreateUser(TestCase.user)
 
@@ -240,9 +240,8 @@ func TestPostgresRepository_CreateUser(t *testing.T) {
 
 			// Проверка на добавление в базу
 			var newUser models.User
-			err = db.QueryRow(context.Background(), "SELECT id, name, username, password " +
-				"FROM users WHERE username = $1", TestCase.user.Username).Scan(
-					&newUser.ID, &newUser.Name, &newUser.Username, &newUser.Password)
+			err = db.QueryRow(context.Background(), "SELECT id, name, username, password FROM users WHERE username = $1",
+				TestCase.user.Username).Scan(&newUser.ID, &newUser.Name, &newUser.Username, &newUser.Password)
 			if err != nil {
 				log.Error(err)
 				return
@@ -254,42 +253,29 @@ func TestPostgresRepository_CreateUser(t *testing.T) {
 }
 
 func TestMongoRepository_GetUser(t *testing.T) {
-	TestTable := []struct{
-		name string
+	TestTable := []struct {
+		name          string
 		inputUsername string
 		inputPassword string
-		expectUser models.User
-		exceptError error
+		expectUser    models.User
+		exceptError   error
 	}{
 		{
-			name: "OK",
-			inputUsername: "Jonny",
-			inputPassword: "Jon25@ew5",
+			name: "OK", inputUsername: "Jonny", inputPassword: "Jon25@ew5",
 			expectUser: models.User{
-				ID:       1,
-				Name:     "Jon Snow",
-				Username: "Jonny",
-				Password: "Jon25@ew5",
-			},
-			exceptError: nil,
+				ID: 1, Name: "Jon Snow", Username: "Jonny", Password: "Jon25@ew5",
+			}, exceptError: nil,
 		},
 		{
-			name: "user isn't in database",
-			inputUsername: "Bob",
-			inputPassword: "random",
-			expectUser: *new(models.User),
-			exceptError: errors.New("error at working with database"),
+			name: "user isn't in database", inputUsername: "Bob", inputPassword: "random", expectUser: models.User{}, exceptError: errors.New("error at working with database"),
 		},
 		{
-			name: "password isn't corrected",
-			inputUsername: "Jonny",
-			inputPassword: "random",
-			expectUser: *new(models.User),
-			exceptError: errors.New("password isn't corrected"),
+			name: "password isn't corrected", inputUsername: "Jonny", inputPassword: "random", expectUser: models.User{}, exceptError: errors.New("password isn't corrected"),
 		},
 	}
 
 	for _, TestCase := range TestTable {
+		TestCase := TestCase // pin!
 		t.Run(TestCase.name, func(t *testing.T) {
 			user, err := rpsAuth.GetUser(TestCase.inputUsername, TestCase.inputPassword)
 

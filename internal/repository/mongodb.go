@@ -1,14 +1,16 @@
 package repository
 
 import (
-	"context"
-	"fmt"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"context"
+	"fmt"
 )
 
+// RequestMongo sets a connection with mongodb
 func RequestMongo(ctx context.Context) (*mongo.Client, error) {
 	if err := initConfig(); err != nil {
 		log.Error("error config files")
@@ -22,14 +24,6 @@ func RequestMongo(ctx context.Context) (*mongo.Client, error) {
 			return nil, fmt.Errorf("we can't connect to database")
 		}
 	}
-
-	//url := fmt.Sprintf("mongodb://%s:%s/",
-	//	viper.GetString("mongodb.host"),
-	//	viper.GetString("mongodb.port"))
-	//
-	//fmt.Println(url)
-
-	//url := os.Getenv("MONGODB_CONNSTRING")
 
 	// Для локальной разработке, закоментить при билдинге
 	url := "mongodb://root:example@localhost:27017/"

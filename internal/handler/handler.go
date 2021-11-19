@@ -1,38 +1,45 @@
+// Package handler takes parameters from http request and sends it in service
 package handler
 
 import (
 	"CatsCrud/internal/models"
 	"CatsCrud/internal/request"
 	"CatsCrud/internal/service"
+
 	"github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
+
 	"net/http"
 	"strconv"
 )
 
-type CatHandler struct {
+// Handler has an interface of service
+type Handler struct {
 	src service.Service
 }
 
-func NewCatHandler(srv service.Service) *CatHandler {
-	return &CatHandler{src: srv}
+// NewCatHandler is constructor
+func NewCatHandler(srv service.Service) *Handler {
+	return &Handler{src: srv}
 }
 
+// GetAllCats gets http request, calls func in service and sends http response
 // @Summary GetAllCats
 // @Tags Cats
 // @Description collect all cats in array
 // @Produce json
 // @Success 200 {array} models.Cats
 // @Router /cats [get]
-func(h *CatHandler) GetAllCats(c echo.Context) error {
-	allcats, err :=  h.src.GetAllCatsServ()
+func (h *Handler) GetAllCats(c echo.Context) error {
+	everyone, err := h.src.GetAllCatsServ()
 	if err != nil {
 		log.Error(err)
 		return c.JSON(http.StatusInternalServerError, err)
 	}
-	return c.JSON(http.StatusOK, allcats)
+	return c.JSON(http.StatusOK, everyone)
 }
 
+// CreateCats gets http request, calls func in service and sends http response
 // @Summary CreateCats
 // @Tags Cats
 // @Description create cat
@@ -42,7 +49,7 @@ func(h *CatHandler) GetAllCats(c echo.Context) error {
 // @Success 201 {object} models.Cats
 // @Failure 400 {object} models.Cats
 // @Router /cats [post]
-func (h *CatHandler) CreateCats(c echo.Context) error {
+func (h *Handler) CreateCats(c echo.Context) error {
 	cats := new(models.Cats)
 	if err := c.Bind(cats); err != nil {
 		return c.JSON(http.StatusBadRequest, err)
@@ -59,6 +66,7 @@ func (h *CatHandler) CreateCats(c echo.Context) error {
 	return c.JSON(http.StatusCreated, cat)
 }
 
+// GetCat gets http request, calls func in service and sends http response
 // @Summary GetCat
 // @Tags Cats
 // @Description get cat by id
@@ -69,8 +77,8 @@ func (h *CatHandler) CreateCats(c echo.Context) error {
 // @Failure 400 {object} models.Cats
 // @Failure 500 {string} string
 // @Router /cats/{id} [get]
-func (h *CatHandler) GetCat(c echo.Context) error {
-	id := new(request.RequestCatId)
+func (h *Handler) GetCat(c echo.Context) error {
+	id := new(request.CatID)
 	if err := c.Bind(id); err != nil {
 		return c.JSON(http.StatusBadRequest, err)
 	}
@@ -86,6 +94,7 @@ func (h *CatHandler) GetCat(c echo.Context) error {
 	return c.JSON(http.StatusOK, cat)
 }
 
+// UpdateCat gets http request, calls func in service and sends http response
 // @Summary UpdateCat
 // @Tags Cats
 // @Description update cat by id
@@ -97,7 +106,7 @@ func (h *CatHandler) GetCat(c echo.Context) error {
 // @Failure 400 {object} models.Cats
 // @Failure 500 {string} string
 // @Router /cats/{id} [put]
-func (h *CatHandler) UpdateCat(c echo.Context) error {
+func (h *Handler) UpdateCat(c echo.Context) error {
 	cats := new(models.Cats)
 	if err := c.Bind(cats); err != nil {
 		return c.JSON(http.StatusBadRequest, err)
@@ -114,6 +123,7 @@ func (h *CatHandler) UpdateCat(c echo.Context) error {
 	return c.JSON(http.StatusOK, cat)
 }
 
+// DeleteCat gets http request, calls func in service and sends http response
 // @Summary DeleteCat
 // @Tags Cats
 // @Description delete cat by id
@@ -124,8 +134,8 @@ func (h *CatHandler) UpdateCat(c echo.Context) error {
 // @Failure 400 {object} models.Cats
 // @Failure 500 {string} string
 // @Router /cats/{id} [delete]
-func (h *CatHandler) DeleteCat(c echo.Context) error {
-	id := new(request.RequestCatId)
+func (h *Handler) DeleteCat(c echo.Context) error {
+	id := new(request.CatID)
 	if err := c.Bind(id); err != nil {
 		return c.JSON(http.StatusBadRequest, err)
 	}

@@ -2,52 +2,57 @@ package service
 
 import (
 	"CatsCrud/internal/models"
-	"CatsCrud/internal/repository"
-	"crypto/sha1"
-	"fmt"
+	rep "CatsCrud/internal/repository"
+
 	"github.com/golang-jwt/jwt"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+
+	"fmt"
 	"time"
 )
 
+const tokenAvailableHour = 72
+
+// UserAuthService has an interface of Auth of repository
 type UserAuthService struct {
-	repository repository.Auth
+	repository rep.Auth
 }
 
+// Auth has methods for registration and authorization
 type Auth interface {
 	CreateUserServ(user models.User) (int, error)
-	GenerateToken(username string, password string) (t string, err error)
+	GenerateToken(username, password string) (t string, err error)
 }
 
-func NewUserAuthService(r repository.Auth) *UserAuthService {
+// NewUserAuthService is a constructor
+func NewUserAuthService(r rep.Auth) *UserAuthService {
 	return &UserAuthService{repository: r}
 }
 
+// JwtCustomClaims expands the jwt.StandardClaims
 type JwtCustomClaims struct {
-	ID 	  int `json:"id"`
-	Name  string `json:"name"`
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 	jwt.StandardClaims
 }
 
+// CreateUserServ sends user into repository and return user's id
 func (s *UserAuthService) CreateUserServ(user models.User) (int, error) {
 	user.Password = generatePassword(user.Password)
 	return s.repository.CreateUser(user)
 }
 
-func (s *UserAuthService) GenerateToken(username string, password string) (t string, err error) {
+// GenerateToken creates token for authorization
+func (s *UserAuthService) GenerateToken(username, password string) (t string, err error) {
 	user, err := s.repository.GetUser(username, generatePassword(password))
 	if err != nil {
 		log.Error("error in repository")
 		return "", err
 	}
 
-	claims := &JwtCustomClaims{
-		ID: user.ID,
-		Name: user.Name,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 72).Unix(),
-		},
+	claims := &JwtCustomClaims{ID: user.ID, Name: user.Name, StandardClaims: jwt.StandardClaims{
+		ExpiresAt: time.Now().Add(time.Hour * tokenAvailableHour).Unix()},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -63,8 +68,5 @@ func (s *UserAuthService) GenerateToken(username string, password string) (t str
 }
 
 func generatePassword(password string) string {
-	hash := sha1.New()
-	hash.Write([]byte(password))
-
-	return fmt.Sprintf("%x", hash.Sum([]byte(viper.GetString("SALT_FOR_GENERATE_PASSWORD"))))
+	return fmt.Sprintf(password + viper.GetString("SALT_FOR_GENERATE_PASSWORD"))
 }

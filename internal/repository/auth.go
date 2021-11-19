@@ -2,23 +2,26 @@ package repository
 
 import (
 	"CatsCrud/internal/models"
-	"context"
-	"errors"
+
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	"context"
+	"errors"
 )
 
+// Auth is responsible for registration and authorization
 type Auth interface {
 	CreateUser(user models.User) (int, error)
 	GetUser(username, password string) (models.User, error)
 }
 
+// CreateUser creates user in database
 func (c *PostgresRepository) CreateUser(user models.User) (int, error) {
 	var id int
-
-	err := c.conn.QueryRow(context.Background(), "INSERT INTO users (ID, Name, Username, Password) " +
-		"VALUES (nextval('users_sequence'), $1, $2, $3) RETURNING ID",
+	err := c.conn.QueryRow(context.Background(),
+		"INSERT INTO users (ID, Name, Username, Password) VALUES (nextval('users_sequence'), $1, $2, $3) RETURNING ID",
 		user.Name, user.Username, user.Password).Scan(&id)
 	if err != nil {
 		log.Error(err)
@@ -28,11 +31,11 @@ func (c *PostgresRepository) CreateUser(user models.User) (int, error) {
 	return id, nil
 }
 
-func (c *PostgresRepository) GetUser (username, password string) (models.User, error) {
+// GetUser gets user from database
+func (c *PostgresRepository) GetUser(username, password string) (models.User, error) {
 	var user models.User
-
-	err := c.conn.QueryRow(context.Background(), "SELECT id, name, username, password " +
-		"FROM users WHERE username = $1", username).Scan(&user.ID, &user.Name, &user.Username, &user.Password)
+	err := c.conn.QueryRow(context.Background(),
+		"SELECT id, name, username, password FROM users WHERE username = $1", username).Scan(&user.ID, &user.Name, &user.Username, &user.Password)
 
 	if err != nil {
 		log.Error("error at working with database")
@@ -46,7 +49,7 @@ func (c *PostgresRepository) GetUser (username, password string) (models.User, e
 	return user, nil
 }
 
-
+// CreateUser creates user in database
 func (c *MongoRepository) CreateUser(user models.User) (int, error) {
 	collection := c.client.Database("users").Collection("users")
 
@@ -66,6 +69,7 @@ func (c *MongoRepository) CreateUser(user models.User) (int, error) {
 	return id, nil
 }
 
+// GetUser gets user from database
 func (c *MongoRepository) GetUser(username, password string) (models.User, error) {
-	return *new(models.User), nil
+	return models.User{}, nil
 }

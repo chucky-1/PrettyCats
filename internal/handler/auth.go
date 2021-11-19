@@ -3,19 +3,24 @@ package handler
 import (
 	"CatsCrud/internal/models"
 	"CatsCrud/internal/service"
+
 	"github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
+
 	"net/http"
 )
 
+// UserAuthHandler has an interface which is responsible for registration and authorization
 type UserAuthHandler struct {
 	src service.Auth
 }
 
+// NewUserAuthHandler is constructor
 func NewUserAuthHandler(src service.Auth) *UserAuthHandler {
 	return &UserAuthHandler{src: src}
 }
 
+// SignUp gets http request, calls func in service and sends http response
 // @Summary SignUp
 // @Tags auth
 // @Description decode params and send it in service for create account
@@ -47,11 +52,13 @@ func (h *UserAuthHandler) SignUp(c echo.Context) error {
 	return c.JSON(http.StatusOK, id)
 }
 
+// SignInInput is called by SignIn
 type SignInInput struct {
 	Username string `json:"username" validate:"required,min=3"`
 	Password string `json:"password" validate:"required,min=6"`
 }
 
+// SignIn gets http request, calls func in service and sends http response
 // @Summary SignIn
 // @Tags auth
 // @Description decode params and send them in service for generate token
@@ -71,7 +78,7 @@ func (h *UserAuthHandler) SignIn(c echo.Context) error {
 	}
 
 	if err = c.Validate(input); err != nil {
-		return c.JSON(http.StatusBadRequest,err)
+		return c.JSON(http.StatusBadRequest, err)
 	}
 
 	token, err := h.src.GenerateToken(input.Username, input.Password)
