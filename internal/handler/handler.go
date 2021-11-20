@@ -135,7 +135,7 @@ func (h *Handler) UpdateCat(c echo.Context) error {
 // @Failure 500 {string} string
 // @Router /cats/{id} [delete]
 func (h *Handler) DeleteCat(c echo.Context) error {
-	id := new(request.CatID)
+	id := &request.CatID{}
 	if err := c.Bind(id); err != nil {
 		return c.JSON(http.StatusBadRequest, err)
 	}
