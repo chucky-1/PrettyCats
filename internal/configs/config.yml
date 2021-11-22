@@ -16,3 +16,6 @@ mongodb:
   dbase: "mongodb"
   collection: "mongocl"
 
+redis:
+  host: "localhost"
+  port: "6379"

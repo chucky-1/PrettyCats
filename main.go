@@ -9,6 +9,8 @@ import (
 	"CatsCrud/internal/request"
 	"CatsCrud/internal/service"
 	myGrpc "CatsCrud/protocol"
+	"context"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
@@ -18,15 +20,13 @@ import (
 	sw "github.com/swaggo/echo-swagger"
 	"google.golang.org/grpc"
 
-	"context"
 	"fmt"
 	"net"
 	"net/http"
-	"time"
 )
 
 const (
-	flag     = true // true - postgres; false - mongo
+	flag     = "postgres" // What database do you use? postgres / mongo
 	portEcho = ":8000"
 	portGrpc = "localhost:10000"
 )
@@ -70,32 +70,39 @@ func main() {
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, Cats!")
 	})
+
 	var rps rep.Repository
 	var rpsAuth rep.Auth
-	if flag {
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	if flag == "postgres" {
 		// Соединение с postgres
 		conn, err := rep.RequestDB()
 		if err != nil {
 			log.Panic(err)
 		}
 		defer conn.Close()
-
 		rps = rep.NewPostgresRepository(conn)
 		rpsAuth = rep.NewPostgresRepository(conn)
-	} else {
-		// Соединение с mongo
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	} else if flag == "mongo" {
 		client, err := rep.RequestMongo(ctx)
 		if err != nil {
 			log.Panic(err)
 		}
-		defer cancel()
-
 		rps = rep.NewMongoRepository(client)
 		rpsAuth = rep.NewMongoRepository(client)
 	}
 
-	var srv service.Service = service.NewCatService(rps)
+	// Соединение с redis
+	rdb, err := rep.NewRedisClient(ctx)
+	if err != nil {
+		log.Panic(err)
+	}
+	redis := rep.NewRedisRepository(rdb)
+
+	var srv service.Service = service.NewCatService(rps, *redis)
 	hndlr := handler.NewCatHandler(srv)
 	e.GET("/cats", hndlr.GetAllCats)
 	e.POST("/cats", hndlr.CreateCats)

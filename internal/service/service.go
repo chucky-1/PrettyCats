@@ -4,11 +4,14 @@ package service
 import (
 	"CatsCrud/internal/models"
 	"CatsCrud/internal/repository"
+	"github.com/go-redis/redis/v8"
+	log "github.com/sirupsen/logrus"
 )
 
 // CatService has an interface of repository
 type CatService struct {
 	repository repository.Repository
+	hash repository.RedisRepository
 }
 
 // Service has methods which get params from handler and send it in repository
@@ -21,8 +24,8 @@ type Service interface {
 }
 
 // NewCatService is constructor
-func NewCatService(rps repository.Repository) *CatService {
-	return &CatService{repository: rps}
+func NewCatService(rps repository.Repository, hash repository.RedisRepository) *CatService {
+	return &CatService{repository: rps, hash: hash}
 }
 
 // GetAllCatsServ is called by handler and calls func in repository
@@ -32,20 +35,42 @@ func (s *CatService) GetAllCatsServ() ([]*models.Cats, error) {
 
 // CreateCatsServ is called by handler and calls func in repository
 func (s *CatService) CreateCatsServ(cats models.Cats) (*models.Cats, error) {
+	err := s.hash.CreateCat(cats)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
 	return s.repository.CreateCats(cats)
 }
 
 // GetCatServ is called by handler and calls func in repository
 func (s *CatService) GetCatServ(id string) (*models.Cats, error) {
-	return s.repository.GetCat(id)
+	cat, err := s.hash.GetCat(id)
+	if err == redis.Nil {
+		cat, err = s.repository.GetCat(id)
+		if err != nil {
+			log.Error(err)
+			return nil, err
+		}
+		err = s.hash.CreateCat(*cat)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return cat, err
+	}
+
+	return cat, nil
 }
 
 // UpdateCatServ is called by handler and calls func in repository
 func (s *CatService) UpdateCatServ(id string, cats models.Cats) (*models.Cats, error) {
+	s.hash.DeleteCat(id)
 	return s.repository.UpdateCat(id, cats)
 }
 
 // DeleteCatServ is called by handler and calls func in repository
 func (s *CatService) DeleteCatServ(id string) (*models.Cats, error) {
+	s.hash.DeleteCat(id)
 	return s.repository.DeleteCat(id)
 }
