@@ -38,7 +38,6 @@ func (s *CatService) CreateCatsServ(cats models.Cats) (*models.Cats, error) {
 	err := s.hash.CreateCat(cats)
 	if err != nil {
 		log.Error(err)
-		return nil, err
 	}
 
 	return s.repository.CreateCats(cats)
