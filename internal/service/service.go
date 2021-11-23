@@ -4,7 +4,6 @@ package service
 import (
 	"CatsCrud/internal/models"
 	"CatsCrud/internal/repository"
-	"github.com/go-redis/redis/v8"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -46,7 +45,8 @@ func (s *CatService) CreateCatsServ(cats models.Cats) (*models.Cats, error) {
 // GetCatServ is called by handler and calls func in repository
 func (s *CatService) GetCatServ(id string) (*models.Cats, error) {
 	cat, err := s.hash.GetCat(id)
-	if err == redis.Nil {
+
+	if err != nil {
 		cat, err = s.repository.GetCat(id)
 		if err != nil {
 			log.Error(err)
@@ -54,9 +54,9 @@ func (s *CatService) GetCatServ(id string) (*models.Cats, error) {
 		}
 		err = s.hash.CreateCat(*cat)
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
 		}
-		return cat, err
+		return cat, nil
 	}
 
 	return cat, nil
@@ -64,12 +64,18 @@ func (s *CatService) GetCatServ(id string) (*models.Cats, error) {
 
 // UpdateCatServ is called by handler and calls func in repository
 func (s *CatService) UpdateCatServ(id string, cats models.Cats) (*models.Cats, error) {
-	s.hash.DeleteCat(id)
+	err := s.hash.DeleteCat(id)
+	if err != nil {
+		log.Error(err)
+	}
 	return s.repository.UpdateCat(id, cats)
 }
 
 // DeleteCatServ is called by handler and calls func in repository
 func (s *CatService) DeleteCatServ(id string) (*models.Cats, error) {
-	s.hash.DeleteCat(id)
+	err := s.hash.DeleteCat(id)
+	if err != nil {
+		log.Error(err)
+	}
 	return s.repository.DeleteCat(id)
 }

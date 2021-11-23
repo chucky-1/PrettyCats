@@ -3,56 +3,47 @@ package repository
 import (
 	"CatsCrud/internal/models"
 	"context"
-	"fmt"
+	"github.com/go-redis/cache/v8"
 	"github.com/go-redis/redis/v8"
-	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"strconv"
 	"time"
 )
 
 // RedisRepository provides a connection with redis
 type RedisRepository struct {
-	rdb *redis.Client
+	rdb *cache.Cache
 }
 
 // NewRedisRepository is constructor
-func NewRedisRepository(rdb *redis.Client) *RedisRepository {
+func NewRedisRepository(rdb *cache.Cache) *RedisRepository {
 	return &RedisRepository{rdb: rdb}
 }
 
-func NewRedisClient(ctx context.Context) (*redis.Client, error) {
-	if err := initConfig(); err != nil {
-		log.Error("error config files")
-		return nil, fmt.Errorf("we can't connect to database")
-	}
-
-	if err := godotenv.Load(); err != nil {
-		err = godotenv.Load("C:/Users/User/GolandProjects/CatsCrud/.env")
-		if err != nil {
-			log.Error("error loading env variables")
-			return nil, fmt.Errorf("we can't connect to database")
-		}
-	}
-
-	hostAndPort := viper.GetString("redis.host") + ":" + viper.GetString("redis.port")
-
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     hostAndPort,
-		Password: "", // no password set
-		DB:       0,  // use default DB
+func NewRedisClient() (*cache.Cache, error) {
+	ring := redis.NewRing(&redis.RingOptions{
+		Addrs: map[string]string{
+			"server1": ":6379",
+			"server2": ":6380",
+		},
 	})
 
-	return rdb, nil
+	mycache := cache.New(&cache.Options{
+		Redis:      ring,
+		LocalCache: cache.NewTinyLFU(1000, time.Hour),
+	})
+
+	return mycache, nil
 }
 
 func (c *RedisRepository) CreateCat(cats models.Cats) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
+	ctx := context.TODO()
 
-	err := c.rdb.Set(ctx, strconv.Itoa(int(cats.ID)), cats.Name, 0).Err()
-	if err != nil {
+	if err := c.rdb.Set(&cache.Item{
+		Ctx:   ctx,
+		Key:   strconv.Itoa(int(cats.ID)),
+		Value: cats,
+	}); err != nil {
 		log.Error(err)
 		return err
 	}
@@ -61,29 +52,29 @@ func (c *RedisRepository) CreateCat(cats models.Cats) error {
 }
 
 func (c *RedisRepository) GetCat(id string) (*models.Cats, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
+	ctx := context.TODO()
 
-	val, err := c.rdb.Get(ctx, id).Result()
+	var cat models.Cats
+	err := c.rdb.Get(ctx, id, &cat)
+
 	if err != nil {
-		return nil, err
+		if err.Error() == "cache: key is missing" {
+			return nil, err
+		} else {
+			log.Error(err)
+			return nil, err
+		}
 	}
 
-	cat := new(models.Cats)
-	idInt, err := strconv.ParseInt(id, 0, bitSize)
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-	cat.ID = int32(idInt)
-	cat.Name = val
-
-	return cat, nil
+	return &cat, nil
 }
 
-func (c *RedisRepository) DeleteCat(id string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
+func (c *RedisRepository) DeleteCat(id string) error {
+	ctx := context.TODO()
 
-	c.rdb.Del(ctx, id)
+	err := c.rdb.Delete(ctx, id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

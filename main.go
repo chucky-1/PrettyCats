@@ -96,7 +96,7 @@ func main() {
 	}
 
 	// Соединение с redis
-	rdb, err := rep.NewRedisClient(ctx)
+	rdb, err := rep.NewRedisClient()
 	if err != nil {
 		log.Panic(err)
 	}
