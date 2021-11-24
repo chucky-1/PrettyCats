@@ -10,6 +10,10 @@ import (
 	"CatsCrud/internal/service"
 	myGrpc "CatsCrud/protocol"
 	"context"
+	sw "github.com/swaggo/echo-swagger"
+	"io"
+	"mime/multipart"
+	"os"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -17,7 +21,6 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	sw "github.com/swaggo/echo-swagger"
 	"google.golang.org/grpc"
 
 	"fmt"
@@ -137,6 +140,56 @@ func main() {
 		r.Use(middleware.JWTWithConfig(config))
 		r.GET("", hndlrAuth.Restricted)
 	}
+
+	// Download file
+	e.GET("/download", func(c echo.Context) error {
+		return c.File("template/index.html")
+	})
+	e.GET("/download/file", func(c echo.Context) error {
+		return c.File("media/echo-logo.svg")
+	})
+
+	// Upload file
+	e.GET("/upload", func(c echo.Context) error {
+		return c.File("template/upload.html")
+	})
+	e.POST("/upload", func(c echo.Context) error {
+		name := c.FormValue("name")
+
+		// Source
+		file, err := c.FormFile("file")
+		if err != nil {
+			return err
+		}
+		src, err := file.Open()
+		if err != nil {
+			return err
+		}
+		defer func(src multipart.File) {
+			err = src.Close()
+			if err != nil {
+			}
+		}(src)
+
+		// Destination
+		dst, err := os.Create(name + " " + file.Filename)
+		if err != nil {
+			return err
+		}
+		defer func(dst *os.File) {
+			err = dst.Close()
+			if err != nil {
+
+			}
+		}(dst)
+
+		//Copy
+		if _, err = io.Copy(dst, src); err != nil {
+			return err
+		}
+
+		return c.HTML(http.StatusOK, fmt.Sprintf("<p>File %s uploaded successfully", file.Filename))
+	})
 
 	e.GET("/swagger/*", sw.WrapHandler)
 	e.Logger.Fatal(e.Start(portEcho))
