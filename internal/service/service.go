@@ -10,7 +10,7 @@ import (
 // CatService has an interface of repository
 type CatService struct {
 	repository repository.Repository
-	hash repository.RedisRepository
+	hash repository.Redis
 }
 
 // Service has methods which get params from handler and send it in repository
@@ -23,7 +23,7 @@ type Service interface {
 }
 
 // NewCatService is constructor
-func NewCatService(rps repository.Repository, hash repository.RedisRepository) *CatService {
+func NewCatService(rps repository.Repository, hash repository.Redis) *CatService {
 	return &CatService{repository: rps, hash: hash}
 }
 

@@ -10,17 +10,33 @@ import (
 	"time"
 )
 
-// RedisRepository provides a connection with redis
-type RedisRepository struct {
+type Redis interface {
+	CreateCat(cats models.Cats) error
+	GetCat(id string) (*models.Cats, error)
+	DeleteCat(id string) error
+}
+
+// Cache provides a connection with redis
+type Cache struct {
 	rdb *cache.Cache
 }
 
-// NewRedisRepository is constructor
-func NewRedisRepository(rdb *cache.Cache) *RedisRepository {
-	return &RedisRepository{rdb: rdb}
+// Stream provides a connection with redis
+type Stream struct {
+	rdb *redis.Client
 }
 
-func NewRedisClient() (*cache.Cache, error) {
+// NewCache is constructor
+func NewCache(rdb *cache.Cache) *Cache {
+	return &Cache{rdb: rdb}
+}
+
+// NewStream is constructor
+func NewStream(rdb *redis.Client) *Stream {
+	return &Stream{rdb: rdb}
+}
+
+func CacheConnect() (*cache.Cache, error) {
 	ring := redis.NewRing(&redis.RingOptions{
 		Addrs: map[string]string{
 			"server1": ":6379",
@@ -36,7 +52,19 @@ func NewRedisClient() (*cache.Cache, error) {
 	return mycache, nil
 }
 
-func (c *RedisRepository) CreateCat(cats models.Cats) error {
+func StreamConnect(ctx context.Context) (*redis.Client, error) {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:	  "localhost:6379",
+		Password: "", // no password set
+		DB:		  0,  // use default DB
+	})
+
+	rdb.XGroupCreateMkStream(ctx, "streamCats", "receiver", "0")
+
+	return rdb, nil
+}
+
+func (c *Cache) CreateCat(cats models.Cats) error {
 	ctx := context.TODO()
 
 	if err := c.rdb.Set(&cache.Item{
@@ -51,7 +79,7 @@ func (c *RedisRepository) CreateCat(cats models.Cats) error {
 	return nil
 }
 
-func (c *RedisRepository) GetCat(id string) (*models.Cats, error) {
+func (c *Cache) GetCat(id string) (*models.Cats, error) {
 	ctx := context.TODO()
 
 	var cat models.Cats
@@ -69,7 +97,7 @@ func (c *RedisRepository) GetCat(id string) (*models.Cats, error) {
 	return &cat, nil
 }
 
-func (c *RedisRepository) DeleteCat(id string) error {
+func (c *Cache) DeleteCat(id string) error {
 	ctx := context.TODO()
 
 	err := c.rdb.Delete(ctx, id)
@@ -77,4 +105,48 @@ func (c *RedisRepository) DeleteCat(id string) error {
 		return err
 	}
 	return nil
+}
+
+func (s Stream) CreateCat(cats models.Cats) error {
+	ctx := context.TODO()
+
+	key := strconv.Itoa(int(cats.ID))
+	val := cats.Name
+
+	err := s.rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "streamCats",
+		Values: []interface{}{key, val},
+		ID: key,
+	}).Err()
+
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	return nil
+}
+
+func (s Stream) GetCat(id string) (*models.Cats, error) {
+	ctx := context.TODO()
+
+	entries, err := s.rdb.XRangeN(ctx, "streamCats", id, "+", 1).Result()
+	if err != nil {
+		return nil, err
+	}
+	//s.rdb.XAck(ctx, "streamCats", "receiver", id)
+
+	cat := new(models.Cats)
+	idInt, err := strconv.ParseInt(entries[0].ID[:len(id)], 0, 32)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	cat.ID = int32(idInt)
+	cat.Name = entries[0].Values[id].(string)
+
+	return cat, nil
+}
+
+func (s Stream) DeleteCat(id string) error {
+	panic("implement me")
 }
