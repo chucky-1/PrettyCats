@@ -143,15 +143,15 @@ func main() {
 
 	// Download file
 	e.GET("/download", func(c echo.Context) error {
-		return c.File("template/index.html")
+		return c.File("public/template/index.html")
 	})
 	e.GET("/download/file", func(c echo.Context) error {
-		return c.File("media/echo-logo.svg")
+		return c.File("public/media/echo-logo.svg")
 	})
 
 	// Upload file
 	e.GET("/upload", func(c echo.Context) error {
-		return c.File("template/upload.html")
+		return c.File("public/template/upload.html")
 	})
 	e.POST("/upload", func(c echo.Context) error {
 		name := c.FormValue("name")
