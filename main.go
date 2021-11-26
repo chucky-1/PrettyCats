@@ -30,7 +30,6 @@ import (
 
 const (
 	flag     = "postgres" // What database do you use? postgres / mongo
-	redisFlag = "stream"  // Use cache or stream
 	portEcho = ":8000"
 	portGrpc = "localhost:10000"
 )
@@ -99,23 +98,24 @@ func main() {
 		rpsAuth = rep.NewMongoRepository(client)
 	}
 
-	// Соединение с redis
-	var redis rep.Redis
-	if redisFlag == "cache" {
-		rdb, err := rep.CacheConnect()
-		if err != nil {
-			log.Panic(err)
-		}
-		redis = rep.NewCache(rdb)
-	} else if redisFlag == "stream" {
-		rdb, err := rep.StreamConnect(ctx)
-		if err != nil {
-			log.Panic(err)
-		}
-		redis = rep.NewStream(rdb)
+	// Redis Cache
+	cc, err := rep.CacheConnect()
+	if err != nil {
+		log.Panic(err)
+	}
+	cache := rep.NewCache(cc)
+
+	// Redis Stream
+	ctx = context.TODO()
+	strm, err := service.RedisConnect()
+	redisStream := service.NewRedisStream(strm)
+	go redisStream.ListenStream()
+	if err != nil {
+		log.Panic(err)
 	}
 
-	var srv service.Service = service.NewCatService(rps, redis)
+	var srv service.Service = service.NewCatService(rps, *cache, *redisStream)
+
 	hndlr := handler.NewCatHandler(srv)
 	e.GET("/cats", hndlr.GetAllCats)
 	e.POST("/cats", hndlr.CreateCats)

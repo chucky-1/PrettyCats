@@ -16,6 +16,7 @@ import (
 
 const (
 	description string = "Input: 1 - get all cats; 2 - create cats; 3 - get cat\n4 - update cat; 5 - delete cat; exit - to exit"
+	hostAndPortGrpc string = "localhost:10000"
 )
 
 // GetAll gets all cats
@@ -192,7 +193,7 @@ func ConsoleApp(ctx context.Context, client myGrpc.CatsCrudClient) error {
 }
 
 func main() {
-	conn, err := grpc.Dial("localhost:10000", grpc.WithInsecure())
+	conn, err := grpc.Dial(hostAndPortGrpc, grpc.WithInsecure())
 	if err != nil {
 		log.Errorf("fail to dial: %v", err)
 		return
