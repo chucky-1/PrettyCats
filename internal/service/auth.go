@@ -14,20 +14,20 @@ import (
 
 const tokenAvailableHour = 72
 
-// UserAuthService has an interface of Auth of repository
-type UserAuthService struct {
+// UserAuth has an interface of Auth of repository
+type UserAuth struct {
 	repository rep.Auth
 }
 
 // Auth has methods for registration and authorization
 type Auth interface {
-	CreateUserServ(user models.User) (int, error)
+	CreateUser(user models.User) (int, error)
 	GenerateToken(username, password string) (t string, err error)
 }
 
-// NewUserAuthService is a constructor
-func NewUserAuthService(r rep.Auth) *UserAuthService {
-	return &UserAuthService{repository: r}
+// NewUserAuth is a constructor
+func NewUserAuth(r rep.Auth) *UserAuth {
+	return &UserAuth{repository: r}
 }
 
 // JwtCustomClaims expands the jwt.StandardClaims
@@ -37,14 +37,14 @@ type JwtCustomClaims struct {
 	jwt.StandardClaims
 }
 
-// CreateUserServ sends user into repository and return user's id
-func (s *UserAuthService) CreateUserServ(user models.User) (int, error) {
+// CreateUser sends user into repository and return user's id
+func (s *UserAuth) CreateUser(user models.User) (int, error) {
 	user.Password = generatePassword(user.Password)
 	return s.repository.CreateUser(user)
 }
 
 // GenerateToken creates token for authorization
-func (s *UserAuthService) GenerateToken(username, password string) (t string, err error) {
+func (s *UserAuth) GenerateToken(username, password string) (t string, err error) {
 	user, err := s.repository.GetUser(username, generatePassword(password))
 	if err != nil {
 		log.Error("error in repository")

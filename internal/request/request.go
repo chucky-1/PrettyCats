@@ -23,5 +23,5 @@ func (c *CustomValidator) Validate(i interface{}) error {
 
 // CatID RequestCatID gets id
 type CatID struct {
-	ID int32 `param:"id" json:"id" bson:"id" query:"id" header:"id" form:"id" xml:"id" validate:"required,numeric,gt=0"`
+	ID int32 `param:"id" validate:"required,numeric,gt=0"`
 }

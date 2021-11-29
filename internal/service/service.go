@@ -4,40 +4,63 @@ package service
 import (
 	"CatsCrud/internal/models"
 	"CatsCrud/internal/repository"
+	"context"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"strconv"
+	"sync"
 )
+
+// Service has methods which get params from handler and send it in repository
+type Service interface {
+	GetAll() ([]*models.Cat, error)
+	Create(cats models.Cat) (*models.Cat, error)
+	Get(id string) (*models.Cat, error)
+	Update(id string, cats models.Cat) (*models.Cat, error)
+	Delete(id string) (*models.Cat, error)
+}
 
 // CatService has an interface of repository
 type CatService struct {
 	repository repository.Repository
 	cache repository.Cache
-	stream RedisStream  // it has a Redis client and local map
+	stream *redis.Client
+	memory map[int32]string
+	mu sync.Mutex
 }
 
-// Service has methods which get params from handler and send it in repository
-type Service interface {
-	GetAllCatsServ() ([]*models.Cats, error)
-	CreateCatsServ(cats models.Cats) (*models.Cats, error)
-	GetCatServ(id string) (*models.Cats, error)
-	UpdateCatServ(id string, cats models.Cats) (*models.Cats, error)
-	DeleteCatServ(id string) (*models.Cats, error)
+// preNewCatService goes before NewCatService
+func preNewCatService(rps repository.Repository, cache repository.Cache, stream *redis.Client) *CatService {
+	return &CatService{repository: rps, cache: cache, stream: stream, memory: make(map[int32]string)}
 }
 
 // NewCatService is constructor
-func NewCatService(rps repository.Repository, cache repository.Cache, stream RedisStream) *CatService {
-	return &CatService{repository: rps, cache: cache, stream: stream}
+func NewCatService(ctx context.Context, rps repository.Repository, cache repository.Cache, stream *redis.Client) *CatService {
+	srv := preNewCatService(rps, cache, stream)
+	go srv.listenStream(ctx)
+	return srv
 }
 
-// GetAllCatsServ is called by handler and calls func in repository
-func (s *CatService) GetAllCatsServ() ([]*models.Cats, error) {
-	return s.repository.GetAllCats()
+func RedisConnect() (*redis.Client, error) {
+	hostAndPort := viper.GetString("redis.host") + ":" + viper.GetString("redis.port")
+	rdb := redis.NewClient(&redis.Options{
+		Addr:	  hostAndPort,
+		Password: "", // no password set
+		DB:		  0,  // use default DB
+	})
+	return rdb, nil
 }
 
-// CreateCatsServ is called by handler and calls func in repository
-func (s *CatService) CreateCatsServ(cats models.Cats) (*models.Cats, error) {
-	err := s.stream.WriteDown("INSERT", cats)
+// GetAll is called by handler and calls func in repository
+func (s *CatService) GetAll() ([]*models.Cat, error) {
+	return s.repository.GetAll()
+}
+
+// Create is called by handler and calls func in repository
+func (s *CatService) Create(cats models.Cat) (*models.Cat, error) {
+	err := s.write("INSERT", cats)
 	if err != nil {
 		return nil, err
 	}
@@ -47,18 +70,135 @@ func (s *CatService) CreateCatsServ(cats models.Cats) (*models.Cats, error) {
 		log.Error(err)
 	}
 
-	return s.repository.CreateCats(cats)
+	return s.repository.Create(cats)
 }
 
-func GetCatFromMap(memory map[int32]string ,id string) (*models.Cats, error) {
+// Get is called by handler and calls func in repository
+func (s *CatService) Get(id string) (*models.Cat, error) {
+	// Get cat from local map
+	cat, err := s.getFromMemory(id)
+	if err == nil {
+		return cat, nil
+	}
+
+	// Get cat from cache
+	cat, err = s.cache.GetCat(id)
+
+	// Get cat from database
+	if err != nil {
+		cat, err = s.repository.Get(id)
+		if err != nil {
+			log.Error(err)
+			return nil, err
+		}
+		err = s.write("INSERT", *cat)
+		if err != nil {
+			log.Error(err)
+		}
+		err = s.cache.CreateCat(*cat)
+		if err != nil {
+			log.Error(err)
+		}
+		return cat, nil
+	}
+
+	// Return cat from cache but before add in local map
+	err = s.write("INSERT", *cat)
+	if err != nil {
+		log.Error(err)
+	}
+	return cat, nil
+}
+
+// Update is called by handler and calls func in repository
+func (s *CatService) Update(id string, cats models.Cat) (*models.Cat, error) {
+	// Delete from local map
 	idInt, err := strconv.ParseInt(id, 0, 32)
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
-	name, ok := memory[int32(idInt)]
+	s.updateMemory("DELETE", int32(idInt), "")
+
+	// Delete from cache
+	err = s.cache.DeleteCat(id)
+	if err != nil {
+		log.Error(err)
+	}
+
+	return s.repository.Update(id, cats)
+}
+
+// Delete is called by handler and calls func in repository
+func (s *CatService) Delete(id string) (*models.Cat, error) {
+	// Delete from local map
+	idInt, err := strconv.ParseInt(id, 0, 32)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	s.updateMemory("DELETE", int32(idInt), "")
+
+	// Delete from cache
+	err = s.cache.DeleteCat(id)
+	if err != nil {
+		log.Error(err)
+	}
+	return s.repository.Delete(id)
+}
+
+func(s *CatService) listenStream(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			entries, err := s.stream.XRead(ctx, &redis.XReadArgs{
+				Streams:  []string{"streamCats", "$"},
+				Count:    1,
+				Block:    0,
+			}).Result()
+			if err != nil {
+				log.Error(err)
+			}
+
+			act, ok := entries[0].Messages[0].Values["act"].(string)
+			if ok != true {
+				log.Error("Stop listening server")
+				return
+			}
+			id, ok := entries[0].Messages[0].Values["id"].(string)
+			if ok != true {
+				log.Error("Stop listening server")
+				return
+			}
+			idInt, err := strconv.Atoi(id)
+			if err != nil {
+				log.Error("Stop listening server")
+				return
+			}
+			name, ok := entries[0].Messages[0].Values["name"].(string)
+			if ok != true {
+				log.Error("Stop listening server")
+				return
+			}
+			s.updateMemory(act, int32(idInt), name)
+		}
+	}
+}
+
+func (s *CatService) getFromMemory(id string) (*models.Cat, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	idInt, err := strconv.ParseInt(id, 0, 32)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	name, ok := s.memory[int32(idInt)]
 	if ok == true {
-		cat := new(models.Cats)
+		cat := new(models.Cat)
 		cat.ID = int32(idInt)
 		cat.Name = name
 		if err != nil {
@@ -71,76 +211,28 @@ func GetCatFromMap(memory map[int32]string ,id string) (*models.Cats, error) {
 	return nil, fmt.Errorf("cat didn't find")
 }
 
-// GetCatServ is called by handler and calls func in repository
-func (s *CatService) GetCatServ(id string) (*models.Cats, error) {
-	// Get cat from local map
-	cat, err := GetCatFromMap(s.stream.memory, id)
-	if err == nil {
-		return cat, nil
+func (s *CatService) updateMemory(act string, id int32, name string) {
+	log.Println("Update memory")
+	s.mu.Lock()
+	if act == "INSERT" {
+		s.memory[id] = name
+	} else if act == "DELETE" {
+		delete(s.memory, id)
 	}
-
-	// Get cat from cache
-	cat, err = s.cache.GetCat(id)
-
-	// Get cat from database
-	if err != nil {
-		cat, err = s.repository.GetCat(id)
-		if err != nil {
-			log.Error(err)
-			return nil, err
-		}
-		err = s.stream.WriteDown("INSERT", *cat)
-		if err != nil {
-			log.Error(err)
-		}
-		err = s.cache.CreateCat(*cat)
-		if err != nil {
-			log.Error(err)
-		}
-		return cat, nil
-	}
-
-	// Return cat from cache but before add in local map
-	err = s.stream.WriteDown("INSERT", *cat)
-	if err != nil {
-		log.Error(err)
-	}
-	return cat, nil
+	s.mu.Unlock()
 }
 
-// UpdateCatServ is called by handler and calls func in repository
-func (s *CatService) UpdateCatServ(id string, cats models.Cats) (*models.Cats, error) {
-	// Delete from local map
-	idInt, err := strconv.ParseInt(id, 0, 32)
+func (s *CatService) write(act string, cats models.Cat) error {
+	log.Println("Write down")
+	ctx := context.TODO()
+
+	err := s.stream.XAdd(ctx, &redis.XAddArgs{
+		Stream: "streamCats",
+		Values: []interface{}{"act", act, "id", cats.ID, "name", cats.Name},
+	}).Err()
 	if err != nil {
 		log.Error(err)
-		return nil, err
+		return err
 	}
-	s.stream.UpdateMemory("DELETE", int32(idInt), "")
-
-	// Delete from cache
-	err = s.cache.DeleteCat(id)
-	if err != nil {
-		log.Error(err)
-	}
-
-	return s.repository.UpdateCat(id, cats)
-}
-
-// DeleteCatServ is called by handler and calls func in repository
-func (s *CatService) DeleteCatServ(id string) (*models.Cats, error) {
-	// Delete from local map
-	idInt, err := strconv.ParseInt(id, 0, 32)
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-	s.stream.UpdateMemory("DELETE", int32(idInt), "")
-
-	// Delete from cache
-	err = s.cache.DeleteCat(id)
-	if err != nil {
-		log.Error(err)
-	}
-	return s.repository.DeleteCat(id)
+	return nil
 }

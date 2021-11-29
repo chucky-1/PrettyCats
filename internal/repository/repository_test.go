@@ -118,11 +118,11 @@ func TestInit(t *testing.T) {
 
 func TestPostgresRepository_GetAllCats(t *testing.T) {
 	// Тест
-	allcats, err := rps.GetAllCats()
+	allcats, err := rps.GetAll()
 
 	// Проверка сопоставления типов
 	typeAllcats := fmt.Sprintf("%T", allcats)
-	var tr []*models.Cats
+	var tr []*models.Cat
 	TypeTrue := fmt.Sprintf("%T", tr)
 	assert.Equal(t, typeAllcats, TypeTrue)
 
@@ -136,20 +136,20 @@ func TestPostgresRepository_GetAllCats(t *testing.T) {
 
 func TestPostgresRepository_CreateCats(t *testing.T) {
 	// Входящие значения
-	catsTrue := models.Cats{
+	catsTrue := models.Cat{
 		ID:   3,
 		Name: "cat3",
 	}
 
 	// Тест
-	cat, err := rps.CreateCats(catsTrue)
+	cat, err := rps.Create(catsTrue)
 
 	// Проверка возвращаемых значений
 	assert.Equal(t, cat, &catsTrue)
 	assert.Nil(t, err)
 
 	// Проверка добавления в базу
-	allcats, err := rps.GetAllCats()
+	allcats, err := rps.GetAll()
 	if err != nil {
 		log.Error(err)
 		return
@@ -160,14 +160,14 @@ func TestPostgresRepository_CreateCats(t *testing.T) {
 
 func TestPostgresRepository_GetCat(t *testing.T) {
 	// Входящие значения
-	catTrue := models.Cats{
+	catTrue := models.Cat{
 		ID:   3,
 		Name: "cat3",
 	}
 	id := "3"
 
 	// Тест
-	cat, err := rps.GetCat(id)
+	cat, err := rps.Get(id)
 
 	// Проверка возвращаемых значений
 	assert.Equal(t, cat, &catTrue)
@@ -177,20 +177,20 @@ func TestPostgresRepository_GetCat(t *testing.T) {
 func TestPostgresRepository_UpdateCat(t *testing.T) {
 	// Входящие значения
 	id := "1"
-	catTrue := models.Cats{
+	catTrue := models.Cat{
 		ID:   1,
 		Name: "dogs",
 	}
 
 	// Тест
-	cat, err := rps.UpdateCat(id, catTrue)
+	cat, err := rps.Update(id, catTrue)
 
 	// Проверка возвращаемых значений
 	assert.Equal(t, cat, &catTrue)
 	assert.Nil(t, err)
 
 	// Проверка внесения изменений в базу
-	cat, err = rps.GetCat(id)
+	cat, err = rps.Get(id)
 	if err != nil {
 		log.Error(err)
 		return
@@ -200,14 +200,14 @@ func TestPostgresRepository_UpdateCat(t *testing.T) {
 
 func TestPostgresRepository_DeleteCat(t *testing.T) {
 	// Входящие значения
-	catTrue := models.Cats{
+	catTrue := models.Cat{
 		ID:   3,
 		Name: "cat3",
 	}
 	id := "3"
 
 	// Тест
-	cat, err := rps.DeleteCat(id)
+	cat, err := rps.Delete(id)
 
 	// Проверка возвращаемых значений
 	assert.Equal(t, cat, &catTrue)

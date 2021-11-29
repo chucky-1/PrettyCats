@@ -5,60 +5,60 @@ import (
 	"CatsCrud/internal/models"
 )
 
-// CatServ is mock for service
-type CatServ struct{}
+// Service MockService is mock for service
+type Service struct{}
 
-// NewMockCatServ is constructor
-func NewMockCatServ() *CatServ {
-	return &CatServ{}
+// NewService is constructor
+func NewService() *Service {
+	return &Service{}
 }
 
-// GetAllCatsServ is a method of mock for service
-func (m *CatServ) GetAllCatsServ() ([]*models.Cats, error) {
-	cat := models.Cats{
+// GetAll is a method of mock for service
+func (m *Service) GetAll() ([]*models.Cat, error) {
+	cat := models.Cat{
 		ID:   0,
 		Name: "",
 	}
-	allcats := []*models.Cats{&cat}
+	allcats := []*models.Cat{&cat}
 	return allcats, nil
 }
 
-// CreateCatsServ is a method of mock for service
-func (m *CatServ) CreateCatsServ(cats models.Cats) (*models.Cats, error) {
+// Create is a method of mock for service
+func (m *Service) Create(cats models.Cat) (*models.Cat, error) {
 	return &cats, nil
 }
 
-// GetCatServ is a method of mock for service
-func (m *CatServ) GetCatServ(id string) (*models.Cats, error) {
-	cat := models.Cats{
+// Get is a method of mock for service
+func (m *Service) Get(id string) (*models.Cat, error) {
+	cat := models.Cat{
 		ID:   1,
 		Name: "Jon Snow",
 	}
 	return &cat, nil
 }
 
-// UpdateCatServ is a method of mock for service
-func (m *CatServ) UpdateCatServ(id string, cats models.Cats) (*models.Cats, error) {
+// Update is a method of mock for service
+func (m *Service) Update(id string, cats models.Cat) (*models.Cat, error) {
 	return &cats, nil
 }
 
-// DeleteCatServ is a method of mock for service
-func (m *CatServ) DeleteCatServ(id string) (*models.Cats, error) {
-	cat := models.Cats{
+// Delete is a method of mock for service
+func (m *Service) Delete(id string) (*models.Cat, error) {
+	cat := models.Cat{
 		ID:   1,
 		Name: "Jon Snow",
 	}
 	return &cat, nil
 }
 
-// CreateUserServ is a method of mock for service
-func (m *CatServ) CreateUserServ(user models.User) (int, error) {
+// CreateUser is a method of mock for service
+func (m *Service) CreateUser(user models.User) (int, error) {
 	user.ID = 1
 	return user.ID, nil
 }
 
 // GenerateToken is a method of mock for service
-func (m *CatServ) GenerateToken(username, password string) (t string, err error) {
+func (m *Service) GenerateToken(username, password string) (t string, err error) {
 	// Рабочий токен
 	t = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibmFtZSI6IkpvbiBTbm93IiwiZXhwIjoxOTUxNzQ5NjE5fQ.qdAUCQt2nAdKxgqTVVieqn0gF-yiIKtOevOCSHN7DvU"
 	return t, nil

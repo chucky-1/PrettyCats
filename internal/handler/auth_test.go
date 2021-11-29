@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-func TestUserAuthHandler_SignUp(t *testing.T) {
+func TestAuthHandler_SignUp(t *testing.T) {
 	TestTable := []struct {
 		name             string
 		inputJSON        string
@@ -44,8 +44,8 @@ func TestUserAuthHandler_SignUp(t *testing.T) {
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			var srv service.Auth = mock.NewMockCatServ()
-			var userHandler = NewUserAuthHandler(srv)
+			var srv service.Auth = mock.NewService()
+			var userHandler = NewAuthHandler(srv)
 
 			if assert.NoError(t, userHandler.SignUp(c)) {
 				assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
@@ -54,7 +54,7 @@ func TestUserAuthHandler_SignUp(t *testing.T) {
 	}
 }
 
-func TestUserAuthHandler_SignIn(t *testing.T) {
+func TestAuthHandler_SignIn(t *testing.T) {
 	TestTable := []struct {
 		name             string
 		inputJSON        string
@@ -81,8 +81,8 @@ func TestUserAuthHandler_SignIn(t *testing.T) {
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			var srv service.Auth = mock.NewMockCatServ()
-			var userHandler = NewUserAuthHandler(srv)
+			var srv service.Auth = mock.NewService()
+			var userHandler = NewAuthHandler(srv)
 
 			if assert.NoError(t, userHandler.SignIn(c)) {
 				assert.Equal(t, TestCase.exceptStatusCode, rec.Code)

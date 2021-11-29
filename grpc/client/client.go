@@ -19,8 +19,8 @@ const (
 	hostAndPortGrpc string = "localhost:10000"
 )
 
-// GetAll gets all cats
-func GetAll(ctx context.Context, client myGrpc.CatsCrudClient) error {
+// getAll gets all cats
+func getAll(ctx context.Context, client myGrpc.CatsCrudClient) error {
 	r, err := client.GetAll(ctx, &myGrpc.Request{})
 	if err != nil {
 		log.Error(err)
@@ -31,8 +31,8 @@ func GetAll(ctx context.Context, client myGrpc.CatsCrudClient) error {
 	return nil
 }
 
-// CreateCat creates a cat
-func CreateCat(ctx context.Context, client myGrpc.CatsCrudClient, bitSize int) error {
+// create creates a cat
+func create(ctx context.Context, client myGrpc.CatsCrudClient, bitSize int) error {
 	fmt.Println("Creating cat...")
 	fmt.Print("Input name: ")
 	name, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
@@ -69,8 +69,8 @@ func CreateCat(ctx context.Context, client myGrpc.CatsCrudClient, bitSize int) e
 	return nil
 }
 
-// GetCat gets one of the cats
-func GetCat(ctx context.Context, client myGrpc.CatsCrudClient) error {
+// get one of the cats
+func get(ctx context.Context, client myGrpc.CatsCrudClient) error {
 	fmt.Println("Getting cat...")
 	fmt.Print("Input id: ")
 	id, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
@@ -93,8 +93,8 @@ func GetCat(ctx context.Context, client myGrpc.CatsCrudClient) error {
 	return nil
 }
 
-// UpdateCat updates one of cats
-func UpdateCat(ctx context.Context, client myGrpc.CatsCrudClient, bitSize int) error {
+// update changes one of cats
+func update(ctx context.Context, client myGrpc.CatsCrudClient, bitSize int) error {
 	fmt.Println("Updating cat...")
 	fmt.Print("Input id: ")
 	id, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
@@ -129,8 +129,8 @@ func UpdateCat(ctx context.Context, client myGrpc.CatsCrudClient, bitSize int) e
 	return nil
 }
 
-// DeleteCat deletes a cat by ID
-func DeleteCat(ctx context.Context, client myGrpc.CatsCrudClient) error {
+// delete deletes a cat by ID
+func delete(ctx context.Context, client myGrpc.CatsCrudClient) error {
 	fmt.Println("Delete cat...")
 	fmt.Print("Input id, please: ")
 	id, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
@@ -151,8 +151,8 @@ func DeleteCat(ctx context.Context, client myGrpc.CatsCrudClient) error {
 	return nil
 }
 
-// ConsoleApp is an application that supports some operations with cats
-func ConsoleApp(ctx context.Context, client myGrpc.CatsCrudClient) error {
+// consoleApp is an application that supports some operations with cats
+func consoleApp(ctx context.Context, client myGrpc.CatsCrudClient) error {
 	input := []byte{1, 2}
 	var bitSize = 32
 	for string(input[:len(input)-2]) != "exit" {
@@ -163,27 +163,27 @@ func ConsoleApp(ctx context.Context, client myGrpc.CatsCrudClient) error {
 		}
 		switch {
 		case string(input[:len(input)-2]) == "1":
-			err = GetAll(ctx, client)
+			err = getAll(ctx, client)
 			if err != nil {
 				return err
 			}
 		case string(input[:len(input)-2]) == "2":
-			err = CreateCat(ctx, client, bitSize)
+			err = create(ctx, client, bitSize)
 			if err != nil {
 				return nil
 			}
 		case string(input[:len(input)-2]) == "3":
-			err = GetCat(ctx, client)
+			err = get(ctx, client)
 			if err != nil {
 				return err
 			}
 		case string(input[:len(input)-2]) == "4":
-			err = UpdateCat(ctx, client, bitSize)
+			err = update(ctx, client, bitSize)
 			if err != nil {
 				return err
 			}
 		case string(input[:len(input)-2]) == "5":
-			err = DeleteCat(ctx, client)
+			err = delete(ctx, client)
 			if err != nil {
 				return err
 			}
@@ -212,7 +212,7 @@ func main() {
 
 	fmt.Println(description)
 
-	err = ConsoleApp(ctx, client)
+	err = consoleApp(ctx, client)
 	if err != nil {
 		return
 	}

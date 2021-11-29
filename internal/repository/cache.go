@@ -35,7 +35,7 @@ func CacheConnect() (*cache.Cache, error) {
 	return mycache, nil
 }
 
-func (c *Cache) CreateCat(cats models.Cats) error {
+func (c *Cache) CreateCat(cats models.Cat) error {
 	ctx := context.TODO()
 
 	if err := c.rdb.Set(&cache.Item{
@@ -51,10 +51,10 @@ func (c *Cache) CreateCat(cats models.Cats) error {
 	return nil
 }
 
-func (c *Cache) GetCat(id string) (*models.Cats, error) {
+func (c *Cache) GetCat(id string) (*models.Cat, error) {
 	ctx := context.TODO()
 
-	var cat models.Cats
+	var cat models.Cat
 	err := c.rdb.Get(ctx, id, &cat)
 
 	if err != nil {

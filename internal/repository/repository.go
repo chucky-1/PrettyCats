@@ -32,11 +32,11 @@ type MongoRepository struct {
 
 // Repository has methods which work with database
 type Repository interface {
-	GetAllCats() ([]*models.Cats, error)
-	CreateCats(cats models.Cats) (*models.Cats, error)
-	GetCat(id string) (*models.Cats, error)
-	UpdateCat(id string, cats models.Cats) (*models.Cats, error)
-	DeleteCat(id string) (*models.Cats, error)
+	GetAll() ([]*models.Cat, error)
+	Create(cats models.Cat) (*models.Cat, error)
+	Get(id string) (*models.Cat, error)
+	Update(id string, cats models.Cat) (*models.Cat, error)
+	Delete(id string) (*models.Cat, error)
 }
 
 // NewPostgresRepository is constructor
@@ -49,9 +49,9 @@ func NewMongoRepository(client *mongo.Client) *MongoRepository {
 	return &MongoRepository{client: client}
 }
 
-// GetAllCats gets all cats from database
-func (c *PostgresRepository) GetAllCats() ([]*models.Cats, error) {
-	var allcats []*models.Cats
+// GetAll gets all cats from database
+func (c *PostgresRepository) GetAll() ([]*models.Cat, error) {
+	var allcats []*models.Cat
 
 	rows, err := c.conn.Query(context.Background(), "select ID, name from cats")
 	if err != nil {
@@ -60,7 +60,7 @@ func (c *PostgresRepository) GetAllCats() ([]*models.Cats, error) {
 	}
 
 	for rows.Next() {
-		cats := models.Cats{
+		cats := models.Cat{
 			ID:   0,
 			Name: "",
 		}
@@ -78,8 +78,8 @@ func (c *PostgresRepository) GetAllCats() ([]*models.Cats, error) {
 	return allcats, nil
 }
 
-// CreateCats creates cats in database
-func (c *PostgresRepository) CreateCats(cats models.Cats) (*models.Cats, error) {
+// Create creates cats in database
+func (c *PostgresRepository) Create(cats models.Cat) (*models.Cat, error) {
 	commandTag, err := c.conn.Exec(context.Background(), "INSERT INTO cats VALUES ($1, $2)", cats.ID, cats.Name)
 	if err != nil {
 		log.Error(err)
@@ -93,9 +93,9 @@ func (c *PostgresRepository) CreateCats(cats models.Cats) (*models.Cats, error) 
 	return &cats, nil
 }
 
-// GetCat gets one cats from database by ID
-func (c *PostgresRepository) GetCat(id string) (*models.Cats, error) {
-	var cat models.Cats
+// Get gets one cats from database by ID
+func (c *PostgresRepository) Get(id string) (*models.Cat, error) {
+	var cat models.Cat
 
 	idInt, err := strconv.ParseInt(id, 0, bitSize)
 	if err != nil {
@@ -118,8 +118,8 @@ func (c *PostgresRepository) GetCat(id string) (*models.Cats, error) {
 	return &cat, nil
 }
 
-// UpdateCat updates cat in database by ID
-func (c *PostgresRepository) UpdateCat(id string, cats models.Cats) (*models.Cats, error) {
+// Update updates cat in database by ID
+func (c *PostgresRepository) Update(id string, cats models.Cat) (*models.Cat, error) {
 	// Преобразуем id в int
 	idInt, err := strconv.ParseInt(id, 0, bitSize)
 	if err != nil {
@@ -144,9 +144,9 @@ func (c *PostgresRepository) UpdateCat(id string, cats models.Cats) (*models.Cat
 	return &cats, nil
 }
 
-// DeleteCat deletes cat from database by ID
-func (c *PostgresRepository) DeleteCat(id string) (*models.Cats, error) {
-	var cat models.Cats
+// Delete deletes cat from database by ID
+func (c *PostgresRepository) Delete(id string) (*models.Cat, error) {
+	var cat models.Cat
 
 	// Преобразуем id в int
 	idInt, err := strconv.ParseInt(id, 0, bitSize)
@@ -180,9 +180,9 @@ func (c *PostgresRepository) DeleteCat(id string) (*models.Cats, error) {
 	return &cat, nil
 }
 
-// GetAllCats gets all cats from database
-func (c *MongoRepository) GetAllCats() ([]*models.Cats, error) {
-	var allcats = []*models.Cats{}
+// GetAll gets all cats from database
+func (c *MongoRepository) GetAll() ([]*models.Cat, error) {
+	var allcats = []*models.Cat{}
 
 	collection := c.client.Database(viper.GetString("mongodb.dbase")).Collection(viper.GetString("mongodb.collection"))
 	cur, currErr := collection.Find(context.TODO(), bson.D{})
@@ -205,8 +205,8 @@ func (c *MongoRepository) GetAllCats() ([]*models.Cats, error) {
 	return allcats, nil
 }
 
-// CreateCats creates cats in database
-func (c *MongoRepository) CreateCats(cats models.Cats) (*models.Cats, error) {
+// Create creates cats in database
+func (c *MongoRepository) Create(cats models.Cat) (*models.Cat, error) {
 	collection := c.client.Database(viper.GetString("mongodb.dbase")).Collection(viper.GetString("mongodb.collection"))
 
 	docs := []interface{}{
@@ -221,9 +221,9 @@ func (c *MongoRepository) CreateCats(cats models.Cats) (*models.Cats, error) {
 	return &cats, nil
 }
 
-// GetCat gets one cats from database by ID
-func (c *MongoRepository) GetCat(id string) (*models.Cats, error) {
-	var cat models.Cats
+// Get gets one cats from database by ID
+func (c *MongoRepository) Get(id string) (*models.Cat, error) {
+	var cat models.Cat
 
 	idInt, err := strconv.ParseInt(id, 0, bitSize)
 	if err != nil {
@@ -241,8 +241,8 @@ func (c *MongoRepository) GetCat(id string) (*models.Cats, error) {
 	return &cat, nil
 }
 
-// UpdateCat updates cat in database by ID
-func (c *MongoRepository) UpdateCat(id string, cats models.Cats) (*models.Cats, error) {
+// Update updates cat in database by ID
+func (c *MongoRepository) Update(id string, cats models.Cat) (*models.Cat, error) {
 	// Преобразуем id в int
 	idInt, err := strconv.ParseInt(id, 0, bitSize)
 	if err != nil {
@@ -265,9 +265,9 @@ func (c *MongoRepository) UpdateCat(id string, cats models.Cats) (*models.Cats, 
 	return &cats, nil
 }
 
-// DeleteCat deletes cat from database by ID
-func (c *MongoRepository) DeleteCat(id string) (*models.Cats, error) {
-	var cat models.Cats
+// Delete deletes cat from database by ID
+func (c *MongoRepository) Delete(id string) (*models.Cat, error) {
+	var cat models.Cat
 
 	// Преобразуем id в int
 	idInt, err := strconv.ParseInt(id, 0, bitSize)

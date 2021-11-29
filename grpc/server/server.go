@@ -12,20 +12,20 @@ import (
 	"strconv"
 )
 
-// Cats have application's methods in service side
-type Cats struct {
+// Server have application's methods in service side
+type Server struct {
 	myGrpc.UnimplementedCatsCrudServer
 	srv service.Service
 }
 
-// NewCats is constructor
-func NewCats(srv service.Service) *Cats {
-	return &Cats{srv: srv}
+// NewServer is constructor
+func NewServer(srv service.Service) *Server {
+	return &Server{srv: srv}
 }
 
 // GetAll is method of server of grpc
-func (s *Cats) GetAll(ctx context.Context, r *myGrpc.Request) (*myGrpc.AllCats, error) {
-	allCats, err := s.srv.GetAllCatsServ()
+func (s *Server) GetAll(ctx context.Context, r *myGrpc.Request) (*myGrpc.AllCats, error) {
+	allCats, err := s.srv.GetAll()
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -43,12 +43,12 @@ func (s *Cats) GetAll(ctx context.Context, r *myGrpc.Request) (*myGrpc.AllCats, 
 }
 
 // Create is method of server of grpc
-func (s *Cats) Create(ctx context.Context, r *myGrpc.RequestCat) (*myGrpc.Cat, error) {
-	modCat := new(models.Cats)
+func (s *Server) Create(ctx context.Context, r *myGrpc.RequestCat) (*myGrpc.Cat, error) {
+	modCat := new(models.Cat)
 	modCat.ID = r.GetId()
 	modCat.Name = r.GetName()
 
-	modCat, err := s.srv.CreateCatsServ(*modCat)
+	modCat, err := s.srv.Create(*modCat)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -61,8 +61,8 @@ func (s *Cats) Create(ctx context.Context, r *myGrpc.RequestCat) (*myGrpc.Cat, e
 }
 
 // Get is method of server of grpc
-func (s *Cats) Get(ctx context.Context, r *myGrpc.Id) (*myGrpc.Cat, error) {
-	modCat, err := s.srv.GetCatServ(r.GetId())
+func (s *Server) Get(ctx context.Context, r *myGrpc.Id) (*myGrpc.Cat, error) {
+	modCat, err := s.srv.Get(r.GetId())
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -76,12 +76,12 @@ func (s *Cats) Get(ctx context.Context, r *myGrpc.Id) (*myGrpc.Cat, error) {
 }
 
 // Update is method of server of grpc
-func (s *Cats) Update(ctx context.Context, r *myGrpc.RequestCat) (*myGrpc.Cat, error) {
+func (s *Server) Update(ctx context.Context, r *myGrpc.RequestCat) (*myGrpc.Cat, error) {
 	idStr := strconv.Itoa(int(r.GetId()))
-	modCats := new(models.Cats)
+	modCats := new(models.Cat)
 	modCats.ID = r.GetId()
 	modCats.Name = r.GetName()
-	modCats, err := s.srv.UpdateCatServ(idStr, *modCats)
+	modCats, err := s.srv.Update(idStr, *modCats)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -95,8 +95,8 @@ func (s *Cats) Update(ctx context.Context, r *myGrpc.RequestCat) (*myGrpc.Cat, e
 }
 
 // Delete is method of server of grpc
-func (s *Cats) Delete(ctx context.Context, r *myGrpc.Id) (*myGrpc.Cat, error) {
-	modCat, err := s.srv.DeleteCatServ(r.GetId())
+func (s *Server) Delete(ctx context.Context, r *myGrpc.Id) (*myGrpc.Cat, error) {
+	modCat, err := s.srv.Delete(r.GetId())
 	if err != nil {
 		log.Error(err)
 		return nil, err

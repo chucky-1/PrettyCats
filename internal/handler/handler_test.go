@@ -23,11 +23,11 @@ func TestCatHandler_GetAllCats(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/cats", strings.NewReader(inputJSON))
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	srv := mock.NewMockCatServ()
-	var Handler = NewCatHandler(srv)
+	srv := mock.NewService()
+	var Handler = NewHandler(srv)
 
 	// Assertions
-	if assert.NoError(t, Handler.GetAllCats(c)) {
+	if assert.NoError(t, Handler.GetAll(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, catsJSON, strings.Trim(rec.Body.String(), "\n"))
 	}
@@ -65,10 +65,10 @@ func TestCatHandler_CreateCats(t *testing.T) {
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			srv := mock.NewMockCatServ()
-			var Handler = NewCatHandler(srv)
+			srv := mock.NewService()
+			var Handler = NewHandler(srv)
 
-			if assert.NoError(t, Handler.CreateCats(c)) {
+			if assert.NoError(t, Handler.Create(c)) {
 				assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
 			}
 		})
@@ -101,10 +101,10 @@ func TestCatHandler_GetCat(t *testing.T) {
 			c.SetPath("/cats/:id")
 			c.SetParamNames(TestCase.setParamNames)
 			c.SetParamValues(TestCase.setParamValues)
-			srv := mock.NewMockCatServ()
-			var Handler = NewCatHandler(srv)
+			srv := mock.NewService()
+			var Handler = NewHandler(srv)
 
-			if assert.NoError(t, Handler.GetCat(c)) {
+			if assert.NoError(t, Handler.Get(c)) {
 				assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
 			}
 		})
@@ -148,10 +148,10 @@ func TestCatHandler_UpdateCat(t *testing.T) {
 			c.SetPath("/cats/:id")
 			c.SetParamNames(TestCase.setParamNames)
 			c.SetParamValues(TestCase.setParamValues)
-			srv := mock.NewMockCatServ()
-			var Handler = NewCatHandler(srv)
+			srv := mock.NewService()
+			var Handler = NewHandler(srv)
 
-			if assert.NoError(t, Handler.UpdateCat(c)) {
+			if assert.NoError(t, Handler.Update(c)) {
 				assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
 			}
 		})
@@ -187,10 +187,10 @@ func TestCatHandler_DeleteCat(t *testing.T) {
 			c.SetPath("/cats/:id")
 			c.SetParamNames(TestCase.setParamNames)
 			c.SetParamValues(TestCase.setParamValues)
-			srv := mock.NewMockCatServ()
-			var Handler = NewCatHandler(srv)
+			srv := mock.NewService()
+			var Handler = NewHandler(srv)
 
-			if assert.NoError(t, Handler.DeleteCat(c)) {
+			if assert.NoError(t, Handler.Delete(c)) {
 				assert.Equal(t, TestCase.exceptStatusCode, rec.Code)
 			}
 		})

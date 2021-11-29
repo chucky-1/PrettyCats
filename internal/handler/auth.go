@@ -10,14 +10,14 @@ import (
 	"net/http"
 )
 
-// UserAuthHandler has an interface which is responsible for registration and authorization
-type UserAuthHandler struct {
+// AuthHandler has an interface which is responsible for registration and authorization
+type AuthHandler struct {
 	src service.Auth
 }
 
-// NewUserAuthHandler is constructor
-func NewUserAuthHandler(src service.Auth) *UserAuthHandler {
-	return &UserAuthHandler{src: src}
+// NewAuthHandler is constructor
+func NewAuthHandler(src service.Auth) *AuthHandler {
+	return &AuthHandler{src: src}
 }
 
 // SignUp gets http request, calls func in service and sends http response
@@ -31,7 +31,7 @@ func NewUserAuthHandler(src service.Auth) *UserAuthHandler {
 // @Failure 400 {object} models.User
 // @Failure 500 {object} models.User
 // @Router /register [post]
-func (h *UserAuthHandler) SignUp(c echo.Context) error {
+func (h *AuthHandler) SignUp(c echo.Context) error {
 	user := new(models.User)
 
 	err := c.Bind(user)
@@ -52,8 +52,8 @@ func (h *UserAuthHandler) SignUp(c echo.Context) error {
 	return c.JSON(http.StatusOK, id)
 }
 
-// SignInInput is called by SignIn
-type SignInInput struct {
+// signInInput is called by SignIn
+type signInInput struct {
 	Username string `json:"username" validate:"required,min=3"`
 	Password string `json:"password" validate:"required,min=6"`
 }
@@ -64,13 +64,13 @@ type SignInInput struct {
 // @Description decode params and send them in service for generate token
 // @Accept json
 // @Produce json
-// @Param input body SignInInput true "input"
+// @Param input body signInInput true "input"
 // @Success 200 {string} string "token"
 // @Failure 400 {object} models.User
 // @Failure 500 {object} models.User
 // @Router /login [post]
-func (h *UserAuthHandler) SignIn(c echo.Context) error {
-	input := new(SignInInput)
+func (h *AuthHandler) SignIn(c echo.Context) error {
+	input := new(signInInput)
 
 	err := c.Bind(input)
 	if err != nil {

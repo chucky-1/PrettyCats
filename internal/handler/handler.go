@@ -5,6 +5,7 @@ import (
 	"CatsCrud/internal/models"
 	"CatsCrud/internal/request"
 	"CatsCrud/internal/service"
+	"github.com/golang-jwt/jwt"
 
 	"github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
@@ -15,23 +16,23 @@ import (
 
 // Handler has an interface of service
 type Handler struct {
-	src service.Service
+	srv service.Service
 }
 
-// NewCatHandler is constructor
-func NewCatHandler(srv service.Service) *Handler {
-	return &Handler{src: srv}
+// NewHandler is constructor
+func NewHandler(srv service.Service) *Handler {
+	return &Handler{srv: srv}
 }
 
-// GetAllCats gets http request, calls func in service and sends http response
+// GetAll gets http request, calls func in service and sends http response
 // @Summary GetAllCats
 // @Tags Cats
 // @Description collect all cats in array
 // @Produce json
 // @Success 200 {array} models.Cats
 // @Router /cats [get]
-func (h *Handler) GetAllCats(c echo.Context) error {
-	everyone, err := h.src.GetAllCatsServ()
+func (h *Handler) GetAll(c echo.Context) error {
+	everyone, err := h.srv.GetAll()
 	if err != nil {
 		log.Error(err)
 		return c.JSON(http.StatusInternalServerError, err)
@@ -39,7 +40,7 @@ func (h *Handler) GetAllCats(c echo.Context) error {
 	return c.JSON(http.StatusOK, everyone)
 }
 
-// CreateCats gets http request, calls func in service and sends http response
+// Create gets http request, calls func in service and sends http response
 // @Summary CreateCats
 // @Tags Cats
 // @Description create cat
@@ -49,8 +50,8 @@ func (h *Handler) GetAllCats(c echo.Context) error {
 // @Success 201 {object} models.Cats
 // @Failure 400 {object} models.Cats
 // @Router /cats [post]
-func (h *Handler) CreateCats(c echo.Context) error {
-	cats := new(models.Cats)
+func (h *Handler) Create(c echo.Context) error {
+	cats := new(models.Cat)
 	if err := c.Bind(cats); err != nil {
 		return c.JSON(http.StatusBadRequest, err)
 	}
@@ -58,7 +59,7 @@ func (h *Handler) CreateCats(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	cat, err := h.src.CreateCatsServ(*cats)
+	cat, err := h.srv.Create(*cats)
 	if err != nil {
 		log.Error(err)
 		return c.JSON(http.StatusInternalServerError, err)
@@ -66,7 +67,7 @@ func (h *Handler) CreateCats(c echo.Context) error {
 	return c.JSON(http.StatusCreated, cat)
 }
 
-// GetCat gets http request, calls func in service and sends http response
+// Get gets http request, calls func in service and sends http response
 // @Summary GetCat
 // @Tags Cats
 // @Description get cat by id
@@ -77,7 +78,7 @@ func (h *Handler) CreateCats(c echo.Context) error {
 // @Failure 400 {object} models.Cats
 // @Failure 500 {string} string
 // @Router /cats/{id} [get]
-func (h *Handler) GetCat(c echo.Context) error {
+func (h *Handler) Get(c echo.Context) error {
 	id := new(request.CatID)
 	if err := c.Bind(id); err != nil {
 		return c.JSON(http.StatusBadRequest, err)
@@ -86,7 +87,7 @@ func (h *Handler) GetCat(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	cat, err := h.src.GetCatServ(strconv.Itoa(int(id.ID)))
+	cat, err := h.srv.Get(strconv.Itoa(int(id.ID)))
 	if err != nil {
 		log.Error(err)
 		return c.JSON(http.StatusBadRequest, err)
@@ -94,7 +95,7 @@ func (h *Handler) GetCat(c echo.Context) error {
 	return c.JSON(http.StatusOK, cat)
 }
 
-// UpdateCat gets http request, calls func in service and sends http response
+// Update gets http request, calls func in service and sends http response
 // @Summary UpdateCat
 // @Tags Cats
 // @Description update cat by id
@@ -106,8 +107,8 @@ func (h *Handler) GetCat(c echo.Context) error {
 // @Failure 400 {object} models.Cats
 // @Failure 500 {string} string
 // @Router /cats/{id} [put]
-func (h *Handler) UpdateCat(c echo.Context) error {
-	cats := new(models.Cats)
+func (h *Handler) Update(c echo.Context) error {
+	cats := new(models.Cat)
 	if err := c.Bind(cats); err != nil {
 		return c.JSON(http.StatusBadRequest, err)
 	}
@@ -115,7 +116,7 @@ func (h *Handler) UpdateCat(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	cat, err := h.src.UpdateCatServ(strconv.Itoa(int(cats.ID)), *cats)
+	cat, err := h.srv.Update(strconv.Itoa(int(cats.ID)), *cats)
 	if err != nil {
 		log.Error(err)
 		return c.JSON(http.StatusInternalServerError, err)
@@ -123,7 +124,7 @@ func (h *Handler) UpdateCat(c echo.Context) error {
 	return c.JSON(http.StatusOK, cat)
 }
 
-// DeleteCat gets http request, calls func in service and sends http response
+// Delete gets http request, calls func in service and sends http response
 // @Summary DeleteCat
 // @Tags Cats
 // @Description delete cat by id
@@ -134,7 +135,7 @@ func (h *Handler) UpdateCat(c echo.Context) error {
 // @Failure 400 {object} models.Cats
 // @Failure 500 {string} string
 // @Router /cats/{id} [delete]
-func (h *Handler) DeleteCat(c echo.Context) error {
+func (h *Handler) Delete(c echo.Context) error {
 	id := &request.CatID{}
 	if err := c.Bind(id); err != nil {
 		return c.JSON(http.StatusBadRequest, err)
@@ -143,10 +144,28 @@ func (h *Handler) DeleteCat(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	cat, err := h.src.DeleteCatServ(strconv.Itoa(int(id.ID)))
+	cat, err := h.srv.Delete(strconv.Itoa(int(id.ID)))
 	if err != nil {
 		log.Error(err)
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 	return c.JSON(http.StatusOK, cat)
 }
+
+// Restricted is func which check an authorization
+// @Summary Restricted
+// @Security ApiKeyAuth
+// @Description example closed page
+// @Produce json
+// @Success 200 {string} string
+// @Failure 400 {object} string
+// @Router /restrict [get]
+func (h *AuthHandler) Restricted(c echo.Context) error {
+	user := c.Get("user").(*jwt.Token)
+	claims := user.Claims.(*service.JwtCustomClaims)
+	name := claims.Name
+	id := claims.ID
+	idStr := strconv.Itoa(id)
+	return c.String(http.StatusOK, "Welcome "+name+idStr)
+}
+

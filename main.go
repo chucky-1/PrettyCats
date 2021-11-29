@@ -43,7 +43,7 @@ func NewGrpcServer(portGrpc string, srv service.Service) {
 	}
 
 	s := grpc.NewServer()
-	myGrpc.RegisterCatsCrudServer(s, server.NewCats(srv))
+	myGrpc.RegisterCatsCrudServer(s, server.NewServer(srv))
 	fmt.Printf("server listening at %v\n", lis.Addr())
 	if err = s.Serve(lis); err != nil {
 		log.Errorf("failed to serve: %v", err)
@@ -106,25 +106,23 @@ func main() {
 	cache := rep.NewCache(cc)
 
 	// Redis Stream
-	ctx = context.TODO()
-	strm, err := service.RedisConnect()
-	redisStream := service.NewRedisStream(strm)
-	go redisStream.ListenStream()
+	stream, err := service.RedisConnect()
 	if err != nil {
 		log.Panic(err)
 	}
 
-	var srv service.Service = service.NewCatService(rps, *cache, *redisStream)
+	ctx = context.TODO()
+	var srv service.Service = service.NewCatService(ctx, rps, *cache, stream)
 
-	hndlr := handler.NewCatHandler(srv)
-	e.GET("/cats", hndlr.GetAllCats)
-	e.POST("/cats", hndlr.CreateCats)
-	e.GET("/cats/:id", hndlr.GetCat)
-	e.PUT("/cats/:id", hndlr.UpdateCat)
-	e.DELETE("/cats/:id", hndlr.DeleteCat)
+	hndlr := handler.NewHandler(srv)
+	e.GET("/cats", hndlr.GetAll)
+	e.POST("/cats", hndlr.Create)
+	e.GET("/cats/:id", hndlr.Get)
+	e.PUT("/cats/:id", hndlr.Update)
+	e.DELETE("/cats/:id", hndlr.Delete)
 
-	var srvAuth service.Auth = service.NewUserAuthService(rpsAuth)
-	hndlrAuth := handler.NewUserAuthHandler(srvAuth)
+	var srvAuth service.Auth = service.NewUserAuth(rpsAuth)
+	hndlrAuth := handler.NewAuthHandler(srvAuth)
 
 	go NewGrpcServer(portGrpc, srv)
 
