@@ -43,7 +43,7 @@ func (h *AuthHandler) SignUp(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	id, err := h.src.CreateUserServ(*user)
+	id, err := h.src.CreateUser(*user)
 	if err != nil {
 		log.Error(err)
 		return c.JSON(http.StatusInternalServerError, err)
