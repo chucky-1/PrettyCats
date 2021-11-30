@@ -1,6 +1,5 @@
 port: ":8000"
 
-
 db:
   pos: "postgres"
   username: "user"
@@ -8,7 +7,6 @@ db:
   host: "localhost"
   port: "5432"
   dbase: "postgres"
-
 
 mongodb:
   username: "root"

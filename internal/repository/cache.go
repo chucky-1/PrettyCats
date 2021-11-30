@@ -4,10 +4,8 @@ import (
 	"CatsCrud/internal/models"
 	"context"
 	"github.com/go-redis/cache/v8"
-	"github.com/go-redis/redis/v8"
 	log "github.com/sirupsen/logrus"
 	"strconv"
-	"time"
 )
 
 // Cache provides a connection with redis
@@ -18,21 +16,6 @@ type Cache struct {
 // NewCache is constructor
 func NewCache(rdb *cache.Cache) *Cache {
 	return &Cache{rdb: rdb}
-}
-
-func CacheConnect() (*cache.Cache, error) {
-	ring := redis.NewRing(&redis.RingOptions{
-		Addrs: map[string]string{
-			"server1": ":6379",
-		},
-	})
-
-	mycache := cache.New(&cache.Options{
-		Redis:      ring,
-		LocalCache: cache.NewTinyLFU(1000, time.Hour),
-	})
-
-	return mycache, nil
 }
 
 func (c *Cache) CreateCat(cats models.Cat) error {

@@ -10,7 +10,13 @@ import (
 	"CatsCrud/internal/service"
 	myGrpc "CatsCrud/protocol"
 	"context"
+	"github.com/go-redis/cache/v8"
+	"github.com/go-redis/redis/v8"
+	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/joho/godotenv"
 	sw "github.com/swaggo/echo-swagger"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"io"
 	"mime/multipart"
 	"os"
@@ -33,6 +39,97 @@ const (
 	portEcho = ":8000"
 	portGrpc = "localhost:10000"
 )
+
+// NewPgxPool sets a connection with postgres
+func NewPgxPool(ctx context.Context) (*pgxpool.Pool, error) {
+	if err := rep.InitConfig(); err != nil {
+		log.Error("error config files")
+		return nil, fmt.Errorf("we can't connect to database")
+	}
+
+	if err := godotenv.Load(); err != nil {
+		err = godotenv.Load("C:/Users/User/GolandProjects/CatsCrud/.env")
+		if err != nil {
+			log.Error("error loading env variables")
+			return nil, fmt.Errorf("we can't connect to database")
+		}
+	}
+
+	url := fmt.Sprintf("%s://%s:%s@%s:%s/%s",
+		viper.GetString("db.pos"),
+		viper.GetString("db.username"),
+		os.Getenv("DB_PASSWORD"),
+		viper.GetString("db.host"),
+		viper.GetString("db.port"),
+		viper.GetString("db.dbase"))
+
+	conn, err := pgxpool.Connect(ctx, url)
+	if err != nil {
+		log.Errorf("Unable to connect to database: %v\n", err)
+		return nil, fmt.Errorf("we can't connect to database")
+	}
+	return conn, nil
+}
+
+// NewMongoClient sets a connection with mongodb
+func NewMongoClient(ctx context.Context) (*mongo.Client, error) {
+	if err := rep.InitConfig(); err != nil {
+		log.Error("error config files")
+		return nil, fmt.Errorf("we can't connect to database")
+	}
+
+	if err := godotenv.Load(); err != nil {
+		err = godotenv.Load("C:/Users/User/GolandProjects/CatsCrud/.env")
+		if err != nil {
+			log.Error("error loading env variables")
+			return nil, fmt.Errorf("we can't connect to database")
+		}
+	}
+
+	// Для локальной разработке, закоментить при билдинге
+	url := "mongodb://root:example@localhost:27017/"
+
+	client, err := mongo.NewClient(options.Client().ApplyURI(url))
+	if err != nil {
+		log.Error(err)
+		return nil, fmt.Errorf("we can't connect to database")
+	}
+
+	err = client.Connect(ctx)
+	if err != nil {
+		log.Error(err)
+		return nil, fmt.Errorf("we can't connect to database")
+	}
+
+	return client, nil
+}
+
+// NewCache sets a connection with redis cache
+func NewCache() (*cache.Cache, error) {
+	ring := redis.NewRing(&redis.RingOptions{
+		Addrs: map[string]string{
+			"server1": ":6379",
+		},
+	})
+
+	myCache := cache.New(&cache.Options{
+		Redis:      ring,
+		LocalCache: cache.NewTinyLFU(1000, time.Hour),
+	})
+
+	return myCache, nil
+}
+
+// NewRedisClient sets a connection with redis
+func NewRedisClient() (*redis.Client, error) {
+	hostAndPort := viper.GetString("redis.host") + ":" + viper.GetString("redis.port")
+	rdb := redis.NewClient(&redis.Options{
+		Addr:	  hostAndPort,
+		Password: "", // no password set
+		DB:		  0,  // use default DB
+	})
+	return rdb, nil
+}
 
 // NewGrpcServer is constructor
 func NewGrpcServer(portGrpc string, srv service.Service) {
@@ -82,7 +179,7 @@ func main() {
 
 	if flag == "postgres" {
 		// Соединение с postgres
-		conn, err := rep.RequestDB()
+		conn, err := NewPgxPool(ctx)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -90,7 +187,7 @@ func main() {
 		rps = rep.NewPostgresRepository(conn)
 		rpsAuth = rep.NewPostgresRepository(conn)
 	} else if flag == "mongo" {
-		client, err := rep.RequestMongo(ctx)
+		client, err := NewMongoClient(ctx)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -98,21 +195,19 @@ func main() {
 		rpsAuth = rep.NewMongoRepository(client)
 	}
 
-	// Redis Cache
-	cc, err := rep.CacheConnect()
+	cc, err := NewCache()
 	if err != nil {
 		log.Panic(err)
 	}
-	cache := rep.NewCache(cc)
+	myCache := rep.NewCache(cc)
 
-	// Redis Stream
-	stream, err := service.RedisConnect()
+	redisClient, err := NewRedisClient()
 	if err != nil {
 		log.Panic(err)
 	}
 
 	ctx = context.TODO()
-	var srv service.Service = service.NewCatService(ctx, rps, *cache, stream)
+	var srv service.Service = service.NewCatService(ctx, rps, *myCache, redisClient)
 
 	hndlr := handler.NewHandler(srv)
 	e.GET("/cats", hndlr.GetAll)

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"strconv"
 	"sync"
 )
@@ -31,26 +30,11 @@ type CatService struct {
 	mu sync.Mutex
 }
 
-// preNewCatService goes before NewCatService
-func preNewCatService(rps repository.Repository, cache repository.Cache, stream *redis.Client) *CatService {
-	return &CatService{repository: rps, cache: cache, stream: stream, memory: make(map[int32]string)}
-}
-
 // NewCatService is constructor
 func NewCatService(ctx context.Context, rps repository.Repository, cache repository.Cache, stream *redis.Client) *CatService {
-	srv := preNewCatService(rps, cache, stream)
+	srv :=  &CatService{repository: rps, cache: cache, stream: stream, memory: make(map[int32]string)}
 	go srv.listenStream(ctx)
 	return srv
-}
-
-func RedisConnect() (*redis.Client, error) {
-	hostAndPort := viper.GetString("redis.host") + ":" + viper.GetString("redis.port")
-	rdb := redis.NewClient(&redis.Options{
-		Addr:	  hostAndPort,
-		Password: "", // no password set
-		DB:		  0,  // use default DB
-	})
-	return rdb, nil
 }
 
 // GetAll is called by handler and calls func in repository
