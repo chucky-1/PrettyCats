@@ -4,16 +4,17 @@ package main
 import (
 	_ "CatsCrud/docs"
 	"CatsCrud/grpc/server"
+	"CatsCrud/internal/configs"
 	"CatsCrud/internal/handler"
 	rep "CatsCrud/internal/repository"
 	"CatsCrud/internal/request"
 	"CatsCrud/internal/service"
 	myGrpc "CatsCrud/protocol"
 	"context"
+	"github.com/caarlos0/env/v6"
 	"github.com/go-redis/cache/v8"
 	"github.com/go-redis/redis/v8"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/joho/godotenv"
 	sw "github.com/swaggo/echo-swagger"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -26,7 +27,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 
 	"fmt"
@@ -40,29 +40,9 @@ const (
 	portGrpc = "localhost:10000"
 )
 
-// NewPgxPool sets a connection with postgres
-func NewPgxPool(ctx context.Context) (*pgxpool.Pool, error) {
-	if err := rep.InitConfig(); err != nil {
-		log.Error("error config files")
-		return nil, fmt.Errorf("we can't connect to database")
-	}
-
-	if err := godotenv.Load(); err != nil {
-		err = godotenv.Load("C:/Users/User/GolandProjects/CatsCrud/.env")
-		if err != nil {
-			log.Error("error loading env variables")
-			return nil, fmt.Errorf("we can't connect to database")
-		}
-	}
-
-	url := fmt.Sprintf("%s://%s:%s@%s:%s/%s",
-		viper.GetString("db.pos"),
-		viper.GetString("db.username"),
-		os.Getenv("DB_PASSWORD"),
-		viper.GetString("db.host"),
-		viper.GetString("db.port"),
-		viper.GetString("db.dbase"))
-
+// newPgxPool sets a connection with postgres
+func newPgxPool(ctx context.Context, cfg *configs.Config) (*pgxpool.Pool, error) {
+	url := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", cfg.PsUsername, cfg.PsPassword, cfg.PsHost, cfg.PsPort, cfg.PsDBName)
 	conn, err := pgxpool.Connect(ctx, url)
 	if err != nil {
 		log.Errorf("Unable to connect to database: %v\n", err)
@@ -71,25 +51,9 @@ func NewPgxPool(ctx context.Context) (*pgxpool.Pool, error) {
 	return conn, nil
 }
 
-// NewMongoClient sets a connection with mongodb
-func NewMongoClient(ctx context.Context) (*mongo.Client, error) {
-	if err := rep.InitConfig(); err != nil {
-		log.Error("error config files")
-		return nil, fmt.Errorf("we can't connect to database")
-	}
-
-	if err := godotenv.Load(); err != nil {
-		err = godotenv.Load("C:/Users/User/GolandProjects/CatsCrud/.env")
-		if err != nil {
-			log.Error("error loading env variables")
-			return nil, fmt.Errorf("we can't connect to database")
-		}
-	}
-
-	// Для локальной разработке, закоментить при билдинге
-	url := "mongodb://root:example@localhost:27017/"
-
-	client, err := mongo.NewClient(options.Client().ApplyURI(url))
+// newMongoClient sets a connection with mongodb
+func newMongoClient(ctx context.Context, cfg *configs.Config) (*mongo.Client, error) {
+	client, err := mongo.NewClient(options.Client().ApplyURI(cfg.Mongo))
 	if err != nil {
 		log.Error(err)
 		return nil, fmt.Errorf("we can't connect to database")
@@ -104,11 +68,11 @@ func NewMongoClient(ctx context.Context) (*mongo.Client, error) {
 	return client, nil
 }
 
-// NewCache sets a connection with redis cache
-func NewCache() (*cache.Cache, error) {
+// newCache sets a connection with redis cache
+func newCache(cfg *configs.Config) (*cache.Cache, error) {
 	ring := redis.NewRing(&redis.RingOptions{
 		Addrs: map[string]string{
-			"server1": ":6379",
+			cfg.CacheHost: cfg.CachePort,
 		},
 	})
 
@@ -120,9 +84,9 @@ func NewCache() (*cache.Cache, error) {
 	return myCache, nil
 }
 
-// NewRedisClient sets a connection with redis
-func NewRedisClient() (*redis.Client, error) {
-	hostAndPort := viper.GetString("redis.host") + ":" + viper.GetString("redis.port")
+// newRedisClient sets a connection with redis
+func newRedisClient(cfg *configs.Config) (*redis.Client, error) {
+	hostAndPort := cfg.RedisHost + ":" + cfg.RedisPort
 	rdb := redis.NewClient(&redis.Options{
 		Addr:	  hostAndPort,
 		Password: "", // no password set
@@ -131,8 +95,8 @@ func NewRedisClient() (*redis.Client, error) {
 	return rdb, nil
 }
 
-// NewGrpcServer is constructor
-func NewGrpcServer(portGrpc string, srv service.Service) {
+// newGrpcServer is constructor
+func newGrpcServer(portGrpc string, srv service.Service) {
 	lis, err := net.Listen("tcp", portGrpc)
 	if err != nil {
 		log.Errorf("failed to listen: %v", err)
@@ -163,6 +127,13 @@ func main() {
 	e := echo.New()
 	e.Validator = &request.CustomValidator{Validator: validator.New()}
 
+	// Configuration
+	cfg := &configs.Config{}
+	opts := &env.Options{}
+	if err := env.Parse(cfg, *opts); err != nil {
+		log.Fatal(err)
+	}
+
 	// Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
@@ -179,7 +150,7 @@ func main() {
 
 	if flag == "postgres" {
 		// Соединение с postgres
-		conn, err := NewPgxPool(ctx)
+		conn, err := newPgxPool(ctx, cfg)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -187,21 +158,21 @@ func main() {
 		rps = rep.NewPostgresRepository(conn)
 		rpsAuth = rep.NewPostgresRepository(conn)
 	} else if flag == "mongo" {
-		client, err := NewMongoClient(ctx)
+		client, err := newMongoClient(ctx, cfg)
 		if err != nil {
 			log.Panic(err)
 		}
-		rps = rep.NewMongoRepository(client)
-		rpsAuth = rep.NewMongoRepository(client)
+		rps = rep.NewMongoRepository(client, cfg)
+		rpsAuth = rep.NewMongoRepository(client, cfg)
 	}
 
-	cc, err := NewCache()
+	cc, err := newCache(cfg)
 	if err != nil {
 		log.Panic(err)
 	}
 	myCache := rep.NewCache(cc)
 
-	redisClient, err := NewRedisClient()
+	redisClient, err := newRedisClient(cfg)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -216,10 +187,10 @@ func main() {
 	e.PUT("/cats/:id", hndlr.Update)
 	e.DELETE("/cats/:id", hndlr.Delete)
 
-	var srvAuth service.Auth = service.NewUserAuth(rpsAuth)
+	var srvAuth service.Auth = service.NewUserAuth(rpsAuth, cfg)
 	hndlrAuth := handler.NewAuthHandler(srvAuth)
 
-	go NewGrpcServer(portGrpc, srv)
+	go newGrpcServer(portGrpc, srv)
 
 	e.POST("/register", hndlrAuth.SignUp)
 	e.POST("/login", hndlrAuth.SignIn)
@@ -228,7 +199,7 @@ func main() {
 	{
 		config := middleware.JWTConfig{
 			Claims:     new(service.JwtCustomClaims),
-			SigningKey: []byte(viper.GetString("KEY_FOR_SIGNATURE_JWT")),
+			SigningKey: []byte(cfg.KeyForSignatureJwt),
 		}
 		r.Use(middleware.JWTWithConfig(config))
 		r.GET("", hndlrAuth.Restricted)

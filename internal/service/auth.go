@@ -1,14 +1,13 @@
 package service
 
 import (
+	"CatsCrud/internal/configs"
 	"CatsCrud/internal/models"
 	rep "CatsCrud/internal/repository"
 
+	"fmt"
 	"github.com/golang-jwt/jwt"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-
-	"fmt"
 	"time"
 )
 
@@ -17,6 +16,7 @@ const tokenAvailableHour = 72
 // UserAuth has an interface of Auth of repository
 type UserAuth struct {
 	repository rep.Auth
+	cfg *configs.Config
 }
 
 // Auth has methods for registration and authorization
@@ -26,8 +26,8 @@ type Auth interface {
 }
 
 // NewUserAuth is a constructor
-func NewUserAuth(r rep.Auth) *UserAuth {
-	return &UserAuth{repository: r}
+func NewUserAuth(r rep.Auth, cfg *configs.Config) *UserAuth {
+	return &UserAuth{repository: r, cfg: cfg}
 }
 
 // JwtCustomClaims expands the jwt.StandardClaims
@@ -39,13 +39,13 @@ type JwtCustomClaims struct {
 
 // CreateUser sends user into repository and return user's id
 func (s *UserAuth) CreateUser(user models.User) (int, error) {
-	user.Password = generatePassword(user.Password)
+	user.Password = generatePassword(user.Password, s.cfg)
 	return s.repository.CreateUser(user)
 }
 
 // GenerateToken creates token for authorization
 func (s *UserAuth) GenerateToken(username, password string) (t string, err error) {
-	user, err := s.repository.GetUser(username, generatePassword(password))
+	user, err := s.repository.GetUser(username, generatePassword(password, s.cfg))
 	if err != nil {
 		log.Error("error in repository")
 		return "", err
@@ -58,7 +58,7 @@ func (s *UserAuth) GenerateToken(username, password string) (t string, err error
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Generate encoded token and send it as response.
-	t, err = token.SignedString([]byte(viper.GetString("KEY_FOR_SIGNATURE_JWT")))
+	t, err = token.SignedString([]byte(s.cfg.KeyForSignatureJwt))
 	if err != nil {
 		log.Error("error during generate token")
 		return "", err
@@ -67,6 +67,6 @@ func (s *UserAuth) GenerateToken(username, password string) (t string, err error
 	return t, nil
 }
 
-func generatePassword(password string) string {
-	return fmt.Sprintf(password + viper.GetString("SALT_FOR_GENERATE_PASSWORD"))
+func generatePassword(password string, cfg *configs.Config) string {
+	return fmt.Sprintf(password + cfg.Salt)
 }
